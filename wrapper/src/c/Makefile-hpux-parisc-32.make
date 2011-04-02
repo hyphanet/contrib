@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2008 Tanuki Software, Inc.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-COMPILE = cc -DHPUX -Ae +Z +DAportable +DS1.1
+COMPILE = cc -DHPUX -D_XOPEN_SOURCE_EXTENDED -Ae +Z
 
 INCLUDE=$(JAVA_HOME)/include
 

@@ -46,44 +46,6 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,3,5,0
- PRODUCTVERSION 3,3,5,0
- FILEFLAGSMASK 0x17L
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x4L
- FILETYPE 0x1L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "000904b0"
-        BEGIN
-            VALUE "CompanyName", "Tanuki Software, Ltd."
-            VALUE "FileDescription", "Java Service Wrapper Community Edition 3.3.5"
-            VALUE "FileVersion", "3, 3, 5, 0"
-            VALUE "LegalCopyright", "Copyright (C) 1999, 2009 Tanuki Software, Ltd.  All rights reserved."
-            VALUE "InternalName", "wrapper"
-            VALUE "OriginalFilename", "wrapper.exe"
-            VALUE "ProductName", "Java Service Wrapper Community"
-            VALUE "ProductVersion", "3, 3, 5, 0"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x9, 1200
-    END
-END
-
 #endif    // “ú–{Œê resources
 /////////////////////////////////////////////////////////////////////////////
 

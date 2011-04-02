@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -36,7 +36,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #ifdef WIN32
 
@@ -47,7 +46,6 @@
 #else
 #include <strings.h>
 #include <limits.h>
-#include <sys/time.h>
 #if defined(IRIX)
 #define PATH_MAX FILENAME_MAX
 #endif
@@ -60,9 +58,6 @@
 #define MAX_INCLUDE_DEPTH 10
 
 int debugIncludes = FALSE;
-
-/** Stores the time that the property file began to be loaded. */
-struct tm loadPropertiesTM;
 
 void setInnerProperty(Property *property, const char *propertyValue);
 
@@ -77,7 +72,7 @@ Property* getInnerProperty(Properties *properties, const char *propertyName) {
     /* Loop over the properties which are in order and look for the specified property. */
     property = properties->first;
     while (property != NULL) {
-        cmp = strcmpIgnoreCase(property->name, propertyName);
+        cmp = strcmp(property->name, propertyName);
         if (cmp > 0) {
             /* This property would be after the one being looked for, so it does not exist. */
             return NULL;
@@ -122,7 +117,7 @@ void insertInnerProperty(Properties *properties, Property *newProperty) {
     /* This function assumes that Property is not already in properties. */
     property = properties->first;
     while (property != NULL) {
-        cmp = strcmpIgnoreCase(property->name, newProperty->name);
+        cmp = strcmp(property->name, newProperty->name);
         if (cmp > 0) {
             /* This property would be after the new property, so insert it here. */
             newProperty->previous = property->previous;
@@ -173,7 +168,7 @@ Property* createInnerProperty() {
 
 /**
  * Private function to dispose a Property structure.  Assumes that the
- *    Property is disconnected already.
+ *	Property is disconnected already.
  */
 void disposeInnerProperty(Property *property) {
     free(property->name);
@@ -182,53 +177,6 @@ void disposeInnerProperty(Property *property) {
     property->value = NULL;
     free(property);
     property = NULL;
-}
-
-char generateValueBuffer[256];
-
-char* generateTimeValue(const char* format) {
-    if (strcmpIgnoreCase(format, "YYYYMMDDHHIISS") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d%02d%02d%02d",
-            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
-                loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
-    } else if (strcmpIgnoreCase(format, "YYYYMMDD_HHIISS") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d_%02d%02d%02d",
-            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
-                loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min, loadPropertiesTM.tm_sec );
-    } else if (strcmpIgnoreCase(format, "YYYYMMDDHHII") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d%02d%02d",
-            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
-                loadPropertiesTM.tm_hour, loadPropertiesTM.tm_min );
-    } else if (strcmpIgnoreCase(format, "YYYYMMDDHH") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d%02d",
-            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday, 
-                loadPropertiesTM.tm_hour );
-    } else if (strcmpIgnoreCase(format, "YYYYMMDD") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d%02d",
-            loadPropertiesTM.tm_year + 1900, loadPropertiesTM.tm_mon + 1, loadPropertiesTM.tm_mday );
-    } else {
-        sprintf(generateValueBuffer, "{INVALID}");
-    }
-    return generateValueBuffer;
-}
-
-char* generateRandValue(const char* format) {
-    if (strcmpIgnoreCase(format, "N") == 0) {
-        sprintf(generateValueBuffer, "%01d", rand() % 10);
-    } else if (strcmpIgnoreCase(format, "NN") == 0) {
-        sprintf(generateValueBuffer, "%02d", rand() % 100);
-    } else if (strcmpIgnoreCase(format, "NNN") == 0) {
-        sprintf(generateValueBuffer, "%03d", rand() % 1000);
-    } else if (strcmpIgnoreCase(format, "NNNN") == 0) {
-        sprintf(generateValueBuffer, "%04d", rand() % 10000);
-    } else if (strcmpIgnoreCase(format, "NNNNN") == 0) {
-        sprintf(generateValueBuffer, "%04d%01d", rand() % 10000, rand() % 10);
-    } else if (strcmpIgnoreCase(format, "NNNNNN") == 0) {
-        sprintf(generateValueBuffer, "%04d%02d", rand() % 10000, rand() % 100);
-    } else {
-        sprintf(generateValueBuffer, "{INVALID}");
-    }
-    return generateValueBuffer;
 }
 
 /**
@@ -272,19 +220,9 @@ void evaluateEnvironmentVariables(const char *propertyValue, char *buffer, int b
                 len = (int)(end - start - 1);
                 memcpy(envName, start + 1, len);
                 envName[len] = '\0';
-                
-                /* See if it is a special dynamic environment variable */
-                if (strstr(envName, "WRAPPER_TIME_") == envName) {
-                    /* Found a time value. */
-                    envValue = generateTimeValue(envName + 13);
-                } else if (strstr(envName, "WRAPPER_RAND_") == envName) {
-                    /* Found a time value. */
-                    envValue = generateRandValue(envName + 13);
-                } else {
-                    /* Try looking up the environment variable. */
-                    envValue = getenv(envName);
-                }
 
+                /* Look up the environment variable */
+                envValue = getenv(envName);
                 if (envValue != NULL) {
                     /* An envvar value was found. */
                     /* Copy over any text before the envvar */
@@ -611,10 +549,6 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
                             free(absoluteBuffer);
                         }
                     }
-                } else if (strstr(trimmedBuffer, "include") == trimmedBuffer) {
-                    /* Users sometimes remove the '#' from include statements.  Add a warning to help them notice the problem. */
-                    log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                        "Include file reference missing leading '#': %s", trimmedBuffer);
                 } else if (trimmedBuffer[0] != '#') {
                     /* printf("%s\n", trimmedBuffer); */
 
@@ -637,25 +571,6 @@ int loadPropertiesInner(Properties* properties, const char* filename, int depth)
 }
 
 int loadProperties(Properties *properties, const char* filename) {
-    /* Store the time that the property file began to be loaded. */
-#ifdef WIN32
-    struct _timeb timebNow;
-#else
-    struct timeval timevalNow;
-#endif
-    time_t      now;
-    struct tm   *nowTM;
-    
-#ifdef WIN32
-    _ftime( &timebNow );
-    now = (time_t)timebNow.time;
-#else
-    gettimeofday( &timevalNow, NULL );
-    now = (time_t)timevalNow.tv_sec;
-#endif
-    nowTM = localtime( &now );
-    memcpy(&loadPropertiesTM, nowTM, sizeof(struct tm));
-    
     return loadPropertiesInner(properties, filename, 0);
 }
 

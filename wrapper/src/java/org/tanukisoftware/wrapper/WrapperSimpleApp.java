@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -53,9 +53,7 @@ import java.lang.reflect.Modifier;
  * It is possible to extend this class but make absolutely sure that any
  *  overridden methods call their super method or the class will fail to
  *  function correctly.  Most users will have no need to override this
- *  class.  Remember that if overridden, the main method will also need to
- *  be recreated in the child class to make sure that the correct instance
- *  is created.
+ *  class.
  * <p>
  * NOTE - The main methods of many applications are designed not to
  *  return.  In these cases, you must either stick with the default 2 second

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -82,6 +82,8 @@ typedef long intptr_t;
 #define SOCKET         int
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR   -1
+#define __max(x,y) (((x) > (y)) ? (x) : (y))
+#define __min(x,y) (((x) < (y)) ? (x) : (y))
 
 #if defined(SOLARIS)
 #include <sys/errno.h>
@@ -113,20 +115,7 @@ SOCKET sd = INVALID_SOCKET;
 int loadConfiguration();
 
 void wrapperAddDefaultProperties() {
-    size_t bufferLen;
-    char* buffer;
-    
-    /* IMPORTANT - If any new values are added here, this work buffer length may need to be calculated differently. */
-    bufferLen = 1;
-    bufferLen = __max(bufferLen, strlen("set.WRAPPER_ARCH=") + strlen(wrapperArch) + 1);
-    bufferLen = __max(bufferLen, strlen("set.WRAPPER_OS=") + strlen(wrapperOS) + 1);
-    bufferLen = __max(bufferLen, strlen("set.WRAPPER_HOST_NAME=") + strlen(wrapperData->hostName) + 1);
-    
-    buffer = malloc(bufferLen);
-    if (!buffer) {
-        outOfMemory("WADP", 1);
-        return;
-    }
+    char buffer[50];
 
     sprintf(buffer, "set.WRAPPER_BITS=%s", wrapperBits);
     addPropertyPair(properties, buffer, TRUE, FALSE);
@@ -137,9 +126,6 @@ void wrapperAddDefaultProperties() {
     sprintf(buffer, "set.WRAPPER_OS=%s", wrapperOS);
     addPropertyPair(properties, buffer, TRUE, FALSE);
 
-    sprintf(buffer, "set.WRAPPER_HOST_NAME=%s", wrapperData->hostName);
-    addPropertyPair(properties, buffer, TRUE, FALSE);
-
 #ifdef WIN32
     addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=\\", TRUE, FALSE);
     addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=;", TRUE, FALSE);
@@ -147,8 +133,6 @@ void wrapperAddDefaultProperties() {
     addPropertyPair(properties, "set.WRAPPER_FILE_SEPARATOR=/", TRUE, FALSE);
     addPropertyPair(properties, "set.WRAPPER_PATH_SEPARATOR=:", TRUE, FALSE);
 #endif
-
-    free(buffer);
 }
 
 /**
@@ -487,7 +471,7 @@ void protocolStartServer() {
         wrapperProtocolClose();
         protocolStopServer();
         wrapperData->exitRequested = TRUE;
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+        wrapperData->restartRequested = FALSE;
         return;
     }
 
@@ -872,21 +856,21 @@ int wrapperCheckServerSocket(int forceOpen) {
         /* The socket is not currently open.  Unless the JVM is DOWN */
         if ((!forceOpen) &&
             ((wrapperData->jState == WRAPPER_JSTATE_DOWN) || 
-             (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) ||
-             (wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
-             (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
-             (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
-             (wrapperData->jState == WRAPPER_JSTATE_KILL))) {
-            /* The JVM is down or in a state where the socket is not needed. */
-            return FALSE;
+        	 (wrapperData->jState == WRAPPER_JSTATE_LAUNCH_DELAY) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_RESTART) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_STOPPED) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_KILLING) ||
+        	 (wrapperData->jState == WRAPPER_JSTATE_KILL))) {
+        	/* The JVM is down or in a state where the socket is not needed. */
+        	return FALSE;
         } else {
-            /* The socket should be open, try doing so. */
+        	/* The socket should be open, try doing so. */
             protocolStartServer();
             if (ssd == INVALID_SOCKET) {
                 /* Failed. */
                 return FALSE;
             } else {
-                return TRUE;
+            	return TRUE;
             }
         }
     } else {
@@ -1076,9 +1060,6 @@ int wrapperInitialize() {
     /* Initialize the properties variable. */
     properties = NULL;
 
-    /* Initialize the random seed. */
-    srand((unsigned)time(NULL));
-    
     /* Make sure all values are reliably set to 0. All required values should also be
      *  set below, but this extra step will protect against future changes.  Some
      *  platforms appear to initialize maloc'd memory to 0 while others do not. */
@@ -1097,7 +1078,7 @@ int wrapperInitialize() {
     wrapperData->lastLoggedPingTicks = wrapperGetTicks();
     wrapperData->jvmCommand = NULL;
     wrapperData->exitRequested = FALSE;
-    wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_INITIAL; /* The first JVM needs to be started. */
+    wrapperData->restartRequested = TRUE; /* The first JVM needs to be started. */
     wrapperData->exitCode = 0;
     wrapperData->jvmRestarts = 0;
     wrapperData->jvmLaunchTicks = wrapperGetTicks();
@@ -1186,9 +1167,9 @@ void wrapperGetFileBase(const char *fileName, char *baseName) {
  */
 void wrapperVersionBanner() {
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "Java Service Wrapper Community Edition %s-bit %s", wrapperBits, wrapperVersionRoot);
+        "Java Service Wrapper Community Edition %s", wrapperVersionRoot);
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
-        "  Copyright (C) 1999-2009 Tanuki Software, Ltd.  All Rights Reserved.");
+        "  Copyright (C) 1999-2008 Tanuki Software, Inc.  All Rights Reserved.");
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
         "    http://wrapper.tanukisoftware.org");
 }
@@ -1206,7 +1187,11 @@ void wrapperUsage(char *appName) {
     }
     wrapperGetFileBase(appName, confFileBase);
     
-    setSimpleLogLevels();
+    /* Force the log levels to control output. */
+    setConsoleLogFormat("M");
+    setConsoleLogLevelInt(LEVEL_INFO);
+    setLogfileLevelInt(LEVEL_NONE);
+    setSyslogLevelInt(LEVEL_NONE);
 
     wrapperVersionBanner();
     log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS, "");
@@ -1444,7 +1429,7 @@ void wrapperKillProcessNow() {
         wrapperData->exitCode = 1;
     }
 
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
 
     /* Remove java pid file if it was registered and created by this process. */
     if (wrapperData->javaPidFilename) {
@@ -1517,7 +1502,7 @@ int wrapperRunConsole() {
 
     /* Setup the wrapperData structure. */
     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
     wrapperData->isConsole = TRUE;
 
     /* Initialize the wrapper */
@@ -1582,7 +1567,7 @@ int wrapperRunService() {
 
     /* Setup the wrapperData structure. */
     wrapperSetWrapperState(FALSE, WRAPPER_WSTATE_STARTING);
-    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, 0, -1);
+    wrapperSetJavaState(FALSE, WRAPPER_JSTATE_DOWN, -1, -1);
     wrapperData->isConsole = FALSE;
 
     /* Initialize the wrapper */
@@ -1651,7 +1636,7 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
         wrapperData->exitCode = exitCode;
 
         /* Make sure that further restarts are disabled. */
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_NO;
+        wrapperData->restartRequested = FALSE;
 
         /* Do not call wrapperSetWrapperState(useLoggerQueue, WRAPPER_WSTATE_STOPPING) here.
          *  It will be called by the wrappereventloop.c.jStateDown once the
@@ -1661,7 +1646,7 @@ void wrapperStopProcess(int useLoggerQueue, int exitCode) {
 }
 
 /**
- * Used to ask the state engine to shut down the JVM.  This are always intentional restart requests.
+ * Used to ask the state engine to shut down the JVM.
  */
 void wrapperRestartProcess(int useLoggerQueue) {
     /* If it has not already been set, set the restart request flag in the wrapper data. */
@@ -1685,7 +1670,7 @@ void wrapperRestartProcess(int useLoggerQueue) {
         }
 
         wrapperData->exitRequested = TRUE;
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_CONFIGURED;
+        wrapperData->restartRequested = TRUE;
     }
 }
 
@@ -1833,13 +1818,9 @@ int wrapperCheckQuotes(const char *value, const char *propName) {
             /* Decide whether or not this '"' is escaped. */
             in2 = in - 1;
             escaped = FALSE;
-            while (value[in2] == '\\') {
+            while ((in2 >= 0) && (value[in2] == '\\')) {
                 escaped = !escaped;
-                if (in2 > 0) {
-                    in2--;
-                } else {
-                    break;
-                }
+                in2--;
             }
             if (!escaped) {
                 inQuote = !inQuote;
@@ -1871,8 +1852,6 @@ int wrapperCheckQuotes(const char *value, const char *propName) {
  * Loops over and stores all necessary commands into an array which
  *  can be used to launch a process.
  * This method will only count the elements if stringsPtr is NULL.
- *
- * Note - Next Out Of Memory is #47
  */
 int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     int index;
@@ -2017,21 +1996,6 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         }
     }
     index++;
-    
-    /* See if the auto bits parameter is set.  Ignored by all but the following platforms. */
-#if defined(HPUX) || defined(MACOSX) || defined(SOLARIS) || defined(FREEBSD)
-    if (getBooleanProperty(properties, "wrapper.java.additional.auto_bits", FALSE)) {
-        if (strings) {
-            strings[index] = malloc(sizeof(char) * 5);
-            if (!strings[index]) {
-                outOfMemory("WBJCAI", 46);
-                return -1;
-            }
-            sprintf(strings[index], "-d%s", wrapperBits);
-        }
-        index++;
-    }
-#endif
 
     /* Store additional java parameters */
     i = 0;
@@ -2133,7 +2097,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (maxMemory > 0) {
         if (strings) {
             maxMemory = __max(maxMemory, initMemory);  /* initMemory <= n */
-            strings[index] = malloc(sizeof(char) * (5 + 10 + 1));  /* Allow up to 10 digits. */
+            strings[index] = malloc(sizeof(char) * (5 + 4 + 1));  /* Allow up to 4 digits. */
             if (!strings[index]) {
                 outOfMemory("WBJCAI", 10);
                 return -1;
@@ -2641,45 +2605,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         index++;
     }
     
-    /* Store the Wrapper disable console input flag. */
-    if (getBooleanProperty(properties, "wrapper.disable_console_input", FALSE)) {
-        if (strings) {
-            strings[index] = malloc(sizeof(char) * (38 + 1));
-            if (!strings[index]) {
-                outOfMemory("WBJCAI", 29);
-                return -1;
-            }
-            if (addQuotes) {
-                sprintf(strings[index], "-Dwrapper.disable_console_input=\"TRUE\"");
-            } else {
-                sprintf(strings[index], "-Dwrapper.disable_console_input=TRUE");
-            }
-        }
-        index++;
-    }
-
-    /* Store the Wrapper listener force stop flag. */
-    if (getBooleanProperty(properties, "wrapper.listener.force_stop", FALSE)) {
-        if (strings) {
-            strings[index] = malloc(sizeof(char) * (38 + 1));
-            if (!strings[index]) {
-                outOfMemory("WBJCAI", 30);
-                return -1;
-            }
-            if (addQuotes) {
-                sprintf(strings[index], "-Dwrapper.listener.force_stop=\"TRUE\"");
-            } else {
-                sprintf(strings[index], "-Dwrapper.listener.force_stop=TRUE");
-            }
-        }
-        index++;
-    }
-    
     /* Store the Wrapper PID */
     if (strings) {
         strings[index] = malloc(sizeof(char) * (24 + 1)); /* Pid up to 10 characters */
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 31);
+            outOfMemory("WBJCAI", 30);
             return -1;
         }
 #if defined(SOLARIS) && (!defined(_LP64))
@@ -2695,7 +2625,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (32 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 32);
+                outOfMemory("WBJCAI", 31);
                 return -1;
             }
             if (addQuotes) {
@@ -2712,7 +2642,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 33);
+                    outOfMemory("WBJCAI", 32);
                     return -1;
                 }
                 if (addQuotes) {
@@ -2727,7 +2657,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
             if (strings) {
                 strings[index] = malloc(sizeof(char) * (43 + 1)); /* Allow for 10 digits */
                 if (!strings[index]) {
-                    outOfMemory("WBJCAI", 34);
+                    outOfMemory("WBJCAI", 33);
                     return -1;
                 }
                 if (addQuotes) {
@@ -2745,7 +2675,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (20 + strlen(wrapperVersion) + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 35);
+            outOfMemory("WBJCAI", 34);
             return -1;
         }
         if (addQuotes) {
@@ -2760,7 +2690,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (27 + strlen(wrapperData->nativeLibrary) + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 36);
+            outOfMemory("WBJCAI", 35);
             return -1;
         }
         if (addQuotes) {
@@ -2772,11 +2702,11 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     index++;
 
     /* Store the ignore signals flag if configured to do so */
-    if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_JAVA) {
+    if (wrapperData->ignoreSignals) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (31 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 37);
+                outOfMemory("WBJCAI", 36);
                 return -1;
             }
             if (addQuotes) {
@@ -2797,7 +2727,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (24 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 38);
+                outOfMemory("WBJCAI", 37);
                 return -1;
             }
             if (addQuotes) {
@@ -2814,7 +2744,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         if (strings) {
             strings[index] = malloc(sizeof(char) * (38 + 1));
             if (!strings[index]) {
-                outOfMemory("WBJCAI", 39);
+                outOfMemory("WBJCAI", 38);
                 return -1;
             }
             if (addQuotes) {
@@ -2831,7 +2761,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         /* Just to be safe, allow 20 characters for the timeout value */
         strings[index] = malloc(sizeof(char) * (24 + 20 + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 40);
+            outOfMemory("WBJCAI", 39);
             return -1;
         }
         if (addQuotes) {
@@ -2846,7 +2776,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
     if (strings) {
         strings[index] = malloc(sizeof(char) * (16 + 5 + 1));  /* jvmid up to 5 characters */
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 41);
+            outOfMemory("WBJCAI", 40);
             return -1;
         }
         sprintf(strings[index], "-Dwrapper.jvmid=%d", (wrapperData->jvmRestarts + 1));
@@ -2858,7 +2788,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
         prop = getStringProperty(properties, "wrapper.java.mainclass", "Main");
         strings[index] = malloc(sizeof(char) * (strlen(prop) + 1));
         if (!strings[index]) {
-            outOfMemory("WBJCAI", 42);
+            outOfMemory("WBJCAI", 41);
             return -1;
         }
         sprintf(strings[index], "%s", prop);
@@ -2883,7 +2813,7 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                     if (stripQuote) {
                         propStripped = malloc(sizeof(char) * (strlen(prop) + 1));
                         if (!propStripped) {
-                            outOfMemory("WBJCAI", 43);
+                            outOfMemory("WBJCAI", 42);
                             return -1;
                         }
                         wrapperStripQuotes(prop, propStripped);
@@ -2895,14 +2825,14 @@ int wrapperBuildJavaCommandArrayInner(char **strings, int addQuotes) {
                         len = wrapperQuoteValue(propStripped, NULL, 0);
                         strings[index] = malloc(len);
                         if (!strings[index]) {
-                            outOfMemory("WBJCAI", 44);
+                            outOfMemory("WBJCAI", 43);
                             return -1;
                         }
                         wrapperQuoteValue(propStripped, strings[index], len);
                     } else {
                         strings[index] = malloc(sizeof(char) * (strlen(propStripped) + 1));
                         if (!strings[index]) {
-                            outOfMemory("WBJCAI", 45);
+                            outOfMemory("WBJCAI", 44);
                             return -1;
                         }
                         sprintf(strings[index], "%s", propStripped);
@@ -3047,26 +2977,26 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
         break;
 
     case WRAPPER_JSTATE_LAUNCHING:
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
+        wrapperData->restartRequested = TRUE;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited while loading the application.");
         break;
 
     case WRAPPER_JSTATE_LAUNCHED:
         /* Shouldn't be called in this state, but just in case. */
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
+        wrapperData->restartRequested = TRUE;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited before starting the application.");
         break;
 
     case WRAPPER_JSTATE_STARTING:
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
+        wrapperData->restartRequested = TRUE;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited while starting the application.");
         break;
 
     case WRAPPER_JSTATE_STARTED:
-        wrapperData->restartRequested = WRAPPER_RESTART_REQUESTED_AUTOMATIC;
+        wrapperData->restartRequested = TRUE;
         log_printf_queue(useLoggerQueue, WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
             "JVM exited unexpectedly.");
         break;
@@ -3098,7 +3028,7 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
 
     /* Only set the state to DOWN if we are not already in a state which reflects this. */
     if (setState) {
-        wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, 0, -1);
+        wrapperSetJavaState(useLoggerQueue, WRAPPER_JSTATE_DOWN, nowTicks, -1);
     }
 
     wrapperProtocolClose();
@@ -3111,8 +3041,7 @@ void wrapperJVMProcessExited(int useLoggerQueue, DWORD nowTicks, int exitCode) {
 
 void wrapperBuildKey() {
     int i;
-    size_t kcNum;
-    size_t num;
+    float num;
     static int seeded = FALSE;
 
     /* Seed the randomizer */
@@ -3122,23 +3051,14 @@ void wrapperBuildKey() {
     }
 
     /* Start by generating a key */
-    num = strlen(keyChars);
+    num = (float)strlen(keyChars);
     
     for (i = 0; i < 16; i++) {
-        /* The way rand works, this will sometimes equal num, which is too big.
-         *  This is rare so just round those cases down. */
-        kcNum = (size_t)(rand() * num / RAND_MAX);
-        if (kcNum >= num) {
-            kcNum = num - 1;
-        }
-        
-        wrapperData->key[i] = keyChars[kcNum];
+        wrapperData->key[i] = keyChars[(int)(rand() * num / RAND_MAX)];
     }
     wrapperData->key[16] = '\0';
     
-    /*
-    printf("  Key=%s Len=%d\n", wrapperData->key, strlen(wrapperData->key));
-    */
+    /*printf("Key=%s\n", wrapperData->key);*/
 }
 
 /**
@@ -3294,9 +3214,6 @@ int wrapperBuildNTServiceInfo() {
 
         /* Hide the JVM Console Window. */
         wrapperData->ntHideJVMConsole = getBooleanProperty( properties, "wrapper.ntservice.hide_console", TRUE );
-        
-        /* Make sure that a console is always generated to support thread dumps */
-        wrapperData->generateConsole = getBooleanProperty( properties, "wrapper.ntservice.generate_console", TRUE );
     }
 
     /* Set the single invocation flag. */
@@ -3376,23 +3293,6 @@ int validateTimeout(const char* propertyName, int value) {
         return WRAPPER_TIMEOUT_MAX;
     } else {
         return value;
-    }
-}
-
-void wrapperLoadHostName()
-{
-    char hostName[80];
-    
-    if (gethostname(hostName, sizeof(hostName))) {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unable to obtain host name. %s",
-            getLastErrorText());
-    } else {
-        wrapperData->hostName = malloc(strlen(hostName) + 1);
-        if (!wrapperData->hostName) {
-            outOfMemory("LHN", 1);
-            return;
-        }
-        sprintf(wrapperData->hostName, "%s", hostName);
     }
 }
 
@@ -3605,7 +3505,6 @@ int loadConfiguration() {
     
     /* Get the disable restart flag */
     wrapperData->isRestartDisabled = getBooleanProperty(properties, "wrapper.disable_restarts", FALSE);
-    wrapperData->isAutoRestartDisabled = getBooleanProperty(properties, "wrapper.disable_restarts.automatic", wrapperData->isRestartDisabled);
 
     /* Get the timeout settings */
     wrapperData->cpuTimeout = getIntProperty(properties, "wrapper.cpu.timeout", 10);
@@ -3785,16 +3684,7 @@ int loadConfiguration() {
     setLogfileUmask(getIntProperty(properties, "wrapper.logfile.umask", wrapperData->umask));
 
     /** Flag controlling whether or not system signals should be ignored. */
-    val = getStringProperty(properties, "wrapper.ignore_signals", "FALSE");
-    if ( ( strcmpIgnoreCase( val, "TRUE" ) == 0 ) || ( strcmpIgnoreCase( val, "BOTH" ) == 0 ) ) {
-        wrapperData->ignoreSignals = WRAPPER_IGNORE_SIGNALS_WRAPPER + WRAPPER_IGNORE_SIGNALS_JAVA;
-    } else if ( strcmpIgnoreCase( val, "WRAPPER" ) == 0 ) {
-        wrapperData->ignoreSignals = WRAPPER_IGNORE_SIGNALS_WRAPPER;
-    } else if ( strcmpIgnoreCase( val, "JAVA" ) == 0 ) {
-        wrapperData->ignoreSignals = WRAPPER_IGNORE_SIGNALS_JAVA;
-    } else {
-        wrapperData->ignoreSignals = 0;
-    }
+    wrapperData->ignoreSignals = getBooleanProperty(properties, "wrapper.ignore_signals", FALSE);
 
     /* Obtain the Console Title. */
     sprintf(propName, "wrapper.console.title.%s", wrapperOS);
@@ -3817,7 +3707,7 @@ int loadConfiguration() {
         return TRUE;
     }
 
-    if (wrapperData->requestThreadDumpOnFailedJVMExit || wrapperData->commandFilename || wrapperData->generateConsole) {
+    if (wrapperData->requestThreadDumpOnFailedJVMExit || wrapperData->commandFilename) {
         if (!wrapperData->ntAllocConsole) {
             /* We need to allocate a console in order for the thread dumps to work
              *  when running as a service.  But the user did not request that a
@@ -4011,7 +3901,7 @@ void wrapperKeyRegistered(char *key) {
         if (strcmp(key, wrapperData->key) == 0) {
             /* This is the correct key. */
             /* We now know that the Java side wrapper code has started. */
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHED, 0, -1);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_LAUNCHED, -1, -1);
 
             /* Send the low log level to the JVM so that it can control output via the log method. */
             sprintf(buffer, "%d", getLowLogLevel());
@@ -4053,7 +3943,7 @@ void wrapperKeyRegistered(char *key) {
         /* We got a key registration.  This means that the JVM thinks it was
          *  being launched but the Wrapper is trying to stop.  Now that the
          *  connection to the JVM has been opened, tell it to stop cleanly. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, 0, -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, wrapperGetTicks(), -1);
         break;
 
     default:
@@ -4109,7 +3999,7 @@ void wrapperStopPendingSignalled(int waitHint) {
 
     if (wrapperData->jState == WRAPPER_JSTATE_STARTED) {
         /* Change the state to STOPPING */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, 0, -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPING, -1, -1);
         /* Don't need to set the timeout here because it will be set below. */
     }
 
@@ -4138,7 +4028,7 @@ void wrapperStoppedSignalled() {
     if (wrapperData->jvmExitTimeout > 0) {
         wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), 5 + wrapperData->jvmExitTimeout);
     } else {
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, 0, -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOPPED, wrapperGetTicks(), -1);
     }
 }
 
@@ -4183,7 +4073,7 @@ void wrapperStartedSignalled() {
         if (wrapperData->pingTimeout > 0) {
             wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), 5 + wrapperData->pingTimeout);
         } else {
-            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, 0, -1);
+            wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STARTED, wrapperGetTicks(), -1);
         }
 
         /* Is the wrapper state STARTING? */
@@ -4199,6 +4089,6 @@ void wrapperStartedSignalled() {
         /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
     } else if (wrapperData->jState == WRAPPER_JSTATE_STOPPING) {
         /* This will happen if the Wrapper was asked to stop as the JVM is being launched. */
-        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, 0, -1);
+        wrapperSetJavaState(FALSE, WRAPPER_JSTATE_STOP, wrapperGetTicks(), -1);
     }
 }

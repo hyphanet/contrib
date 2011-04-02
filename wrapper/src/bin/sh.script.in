@@ -1,7 +1,7 @@
 #! /bin/sh
 
 #
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2008 Tanuki Software, Inc.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -16,7 +16,7 @@
 
 #-----------------------------------------------------------------------------
 # These settings can be modified to fit the needs of your application
-# Optimized for use with version 3.3.5 of the Wrapper.
+# Optimized for use with version 3.3.1 of the Wrapper.
 
 # Application
 APP_NAME="@app.name@"
@@ -527,7 +527,7 @@ stopit() {
         echo "$APP_LONG_NAME was not running."
         if [ "X$1" = "X1" ]
         then
-            exit 1
+        	exit 1
         fi
     else
         if [ "X$IGNORE_SIGNALS" = "X" ]

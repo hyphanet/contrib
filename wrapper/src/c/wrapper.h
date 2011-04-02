@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -30,6 +30,8 @@
 #ifndef _WRAPPER_H
 #define _WRAPPER_H
 
+#include <sys/timeb.h>
+
 #ifdef WIN32
 #include <winsock.h>
 
@@ -41,15 +43,11 @@
 #define u_short unsigned short
 #endif /* MACOSX */
 
-#define __max(x,y) (((x) > (y)) ? (x) : (y))
-#define __min(x,y) (((x) < (y)) ? (x) : (y))
 #endif
 
 #ifndef DWORD
 #define DWORD unsigned long
 #endif
-
-#include <sys/timeb.h>
 
 #include "property.h"
 
@@ -127,14 +125,6 @@
  *  Which is a little over 24 days.  To make the interface nice, round this down to
  *  20 days.  Or 1728000. */
 #define WRAPPER_TIMEOUT_MAX      1728000
-
-#define WRAPPER_IGNORE_SIGNALS_WRAPPER 1
-#define WRAPPER_IGNORE_SIGNALS_JAVA    2
-
-#define WRAPPER_RESTART_REQUESTED_NO 0
-#define WRAPPER_RESTART_REQUESTED_INITIAL 1
-#define WRAPPER_RESTART_REQUESTED_AUTOMATIC 2
-#define WRAPPER_RESTART_REQUESTED_CONFIGURED 4
 
 /* Type definitions */
 typedef struct WrapperConfig WrapperConfig;
@@ -219,12 +209,11 @@ struct WrapperConfig {
     int     startupDelayService;    /* Delay in seconds before starting the first JVM in service mode. */
     int     exitCode;               /* Code which the wrapper will exit with */
     int     exitRequested;          /* TRUE if the current JVM should be shutdown. */
-    int     restartRequested;       /* WRAPPER_RESTART_REQUESTED_NO, WRAPPER_RESTART_REQUESTED_AUTOMATIC, or WRAPPER_RESTART_REQUESTED_CONFIGURED if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
+    int     restartRequested;       /* TRUE if the another JVM should be launched after the current JVM is shutdown. Only set if exitRequested is set. */
     int     jvmRestarts;            /* Number of times that a JVM has been launched since the wrapper was started. */
     int     restartDelay;           /* Delay in seconds before restarting a new JVM. */
     int     restartReloadConf;      /* TRUE if the configuration should be reloaded before a JVM restart. */
     int     isRestartDisabled;      /* TRUE if restarts should be disabled. */
-    int     isAutoRestartDisabled;  /* TRUE if automatic restarts should be disabled. */
     int     requestThreadDumpOnFailedJVMExit; /* TRUE if the JVM should be asked to dump its state when it fails to halt on request. */
     DWORD   jvmLaunchTicks;         /* The tick count at which the previous or current JVM was launched. */
     int     failedInvocationCount;  /* The number of times that the JVM exited in less than successfulInvocationTime in a row. */
@@ -254,12 +243,11 @@ struct WrapperConfig {
     int     statusFileUmask;        /* Umask to use when creating the status file. */
     int     javaStatusFileUmask;    /* Umask to use when creating the java status file. */
     int     anchorFileUmask;        /* Umask to use when creating the anchor file. */
-    int     ignoreSignals;          /* Mask that determines where the Wrapper should ignore any catchable system signals.  Can be ingored in the Wrapper and/or JVM. */
+    int     ignoreSignals;          /* True if the Wrapper should ignore any catchable system signals and inform its JVM to do the same. */
     char    *consoleTitle;          /* Text to set the console title to. */
     char    *serviceName;           /* Name of the service. */
     char    *serviceDisplayName;    /* Display name of the service. */
     char    *serviceDescription;    /* Description for service. */
-    char    *hostName;              /* The name of the current host. */
 
 #ifdef WIN32
     int     isSingleInvocation;     /* TRUE if only a single invocation of an application should be allowed to launch. */
@@ -278,13 +266,8 @@ struct WrapperConfig {
     int     ntServicePausableStopJVM; /* Should the JVM be stopped when the service is paused? */
     int     ntHideJVMConsole;       /* Should the JVMs Console window be hidden when run as a service.  True by default but GUIs will not be visible for JVMs prior to 1.4.0. */
     int     ntHideWrapperConsole;   /* Should the Wrapper Console window be hidden when run as a service. */
-    int     wrapperConsoleHide;     /* True if the Wrapper Console window should be hidden. */
     HWND    wrapperConsoleHandle;   /* Pointer to the Wrapper Console handle if it exists.  This will only be set if the console was allocated then hidden. */
-    int     wrapperConsoleVisible;  /* True if the Wrapper Console window is visible. */
-    HWND    jvmConsoleHandle;       /* Pointer to the JVM Console handle if it exists. */
-    int     jvmConsoleVisible;      /* True if the JVM Console window is visible. */
     int     ntAllocConsole;         /* True if a console should be allocated for the Service. */
-    int     generateConsole;        /* Make sure that a console is always generated to support thread dumps */
     int     threadDumpControlCode;  /* Control code which can be used to trigger a thread dump. */
 #else /* UNIX */
     int     daemonize;              /* TRUE if the process  should be spawned as a daemon process on launch. */
@@ -360,8 +343,6 @@ extern int wrapperProtocolRead();
 /******************************************************************************
  * Utility Functions
  *****************************************************************************/
-extern void wrapperLoadHostName();
-
 extern void wrapperAddDefaultProperties();
 
 extern int wrapperLoadConfigurationProperties();
@@ -458,8 +439,6 @@ extern void wrapperSetJavaState(int useLoggerQueue, int jState, DWORD nowTicks, 
  * Platform specific methods
  *****************************************************************************/
 #ifdef WIN32
-extern void wrapperCheckConsoleWindows();
-
 extern int exceptionFilterFunction(PEXCEPTION_POINTERS exceptionPointers);
 #endif
 

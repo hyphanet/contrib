@@ -1,142 +1,5 @@
 Java Service Wrapper Revision History.
 --------------------------------------
-3.3.5
-* Fix a problem on some UNIX platforms introduced in 3.3.4 where the Wrapper
-  would crash on startup if the configured JVM could not be found.
-* Fix a problem introduced in 3.3.2 where the Wrapper could crash if the
-  system host name was longer than 27 characters in length.
-* Fix a potential problem with the way thread ids were being compared on UNIX
-  systems.
-* Add a new wrapper.java.additional.auto_bits property which will automatically
-  add the -d32 or -d64 arguments to the JVM for platforms whose JVMs typically
-  expect the argument.
-* (Professional) Fix a problem with the Date field of outgoing event emails.
-
-3.3.4
-* (Standard, Professional) Update the development license to version 1.1
-  so that a new copyright notice file can be shipped with user applications
-  rather than the full license text.
-* The Community Edition may be licensed under either the GPL2 based Community
-  License, or the Development License.  The source for the Standard and
-  Professional Editions of the Wrapper are proprietary.
-  http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
-* Fix a problem introduced in 3.3.2 where querying a the status of a Windows
-  service with the -q or -qs commands resulted in an access violation.  The
-  running status of the service was reported correctly but additional
-  configuration information was failing.  Bug #2644515.
-* Add a new wrapper.disable_restarts.automatic property to disable only
-  restarts caused by JVM timeouts, crashes, etc.  Manual or configured
-  restarts will still be allowed.
-* Switch to using make for HPUX IA 32/64 builds.
-* Add Advice comments when the Wrapper fails to launch the JVM process.
-* Fix a problem on UNIX platforms where log entries made by the forked Wrapper
-  process would result in two blocks of log entries in the log file because
-  the parent Wrapper process would think they were console output from the JVM
-  process.
-* Add a set of new wrapper environment variables that can be referenced in the
-  wrapper.conf file to generate random numbers, or timestamps for use in
-  generating unique file names, etc. See the Default Environment Variable
-  definitions section for more details.
-* (Standard, Professional) Fix a problem with Development licenses being
-  able to authorize applications using Integration Method #4 which was
-  added in version 3.3.3.
-* Add the number of bits of the current Wrapper to the startup banner to aid
-  in support requests.
-* (Standard, Professional) Fix a crash problem on HPUX versions which would
-  reliably happen on some machines at startup.
-
-3.3.3
-* Modify the wrapper.ignore_signals property so it now takes the values
-  WRAPPER, JAVA, and BOTH, in addition to TRUE and FALSE.
-* Modify the WrapperManager so it is now careful never to poll the native
-  library once the JVM is flagged as being ready to shutdown.  This is to
-  make sure that the JVM never exits in the middle of a call as that could
-  lead to the JVM crashing.
-* Add a pair of methods to allow threads to request and release locks which
-  will prevent the Wrapper from letting the JVM exit while certain operations
-  are in progress.  See WrapperManager.requestShutdownLock() and
-  WrapperManager.releaseShutdownLock().
-* Fix a problem where interactive services would sometimes leave a console
-  window visible when after starting up.  The Wrapper is now more resilient
-  about closing the window even if it fails to do so initially.
-* Add a new integration method (#4), which makes it easy to configure the
-  Wrapper to execute an executable jar file.
-* Fix a problem where the random generator was not being seeded correctly
-  before naming the Wrapper's console window when running as a Windows
-  service.  This was leading to problems identifying the wrapper's console
-  when more than one service was running on the same machine.
-
-3.3.2
-* Add a file information record to the wrapper.exe and wrapperw.exe binaries
-  so the Version tab will be displayed correctly in the Properties dialog of
-  the file.
-* (Standard, Professional) Fix a problem with the wrapperw.exe binary where
-  the log dialog was not being displayed correctly when the Wrapper was
-  launched with the "-?", "-v", or "-h" arguments.
-* (Standard, Professional) Fix a problem with the wrapperw.exe binary where
-  a message was being displayed in the dialog with the location of the full
-  log file even if there had not been any entries written to the log.
-* (Professional) Improve the debug output produced when sending event emails
-  when the wrapper.event.<event_name>.email.debug property enabled.
-* (Professional) Add wrapper.event.<event_name>.email.send.timeout and
-  wrapper.event.<event_name>.email.receive.timeout properties to avoid the
-  wrapper hanging waiting for a response from a remote mail server.
-  Bug #2064885.
-* (Professional) Fix a problem where the Wrapper would get stuck and fail to
-  send emails with some mail servers.  Problems was being caused by incorrect
-  linefeeds in the body of the email.
-* Add a warning if the leading '#' is missing from an '#include' in the
-  configuration file to assist users with include file problems.
-* Added a new wrapper.ntservice.generate_console which will cause the Wrapper
-  to always generate a console when running as a service and then hide it
-  immediately.  This will cause a slight flicker but is needed to support
-  thread dumps.  Bug #2060181.
-* Fix a problem in the Windows version where the console window would
-  sometimes be left visible when running as an interactive service even when
-  it was configured to be hidden.
-* Add support for PowerEvents so Windows services can respond to suspend
-  and resume events.
-* Fix a problem where the wrapper.key system property passed to the JVM was
-  being generated incorrectly randomly, 1 in 65536 times the JVM was launched.
-  This would result in the JVM failing to start and the Wrapper shutting down.
-* Add a new wrapper.disable_console_input to disable to feature which allows
-  the Wrapper to pass console input on to the Java process.
-* Fix a buffer overflow problem in the logging code which would happen once on
-  startup.  This was benign on most platforms but was causing intermittent
-  crashes in the 32-bit AIX version.
-* Modify the way configuration properties are parsed so that their names are
-  no longer case sensitive.
-* Modify the WrapperServiceException so that a new getErrorCode method can be
-  used to obtain the integer error code which caused the exception.
-  Feature Request #2188280.
-* (Standard, Professional) Fix a problem where on some Windows machines the
-  Wrapper would return a random hostId that changed each time the system was
-  rebooted.
-* (Standard, Professional) Make it possible to define License Keys so that
-  their property names are encoded using either the host name or hostId.  This
-  makes it possible to define multiple keys within the same configuration file,
-  visible on the same host.  This was necessary to support some load balanced
-  network adapters where the visible hostId changes depending on the active
-  physical network adapter.
-* Rework the Java side state engine so it is now possible for the Java side of
-  the Wrapper to respond to stop events while the WrapperListener.start method
-  is still in progress.
-* Add a new wrapper.listener.force_stop property which allows control over
-  whether the WrapperListener.stop method is called on shutdown even if the
-  WrapperListener.start method has not yet completed.
-* Fix a problem on Windows where the ability to start and stop the Wrapper as
-  a service using the Wrapper itself was requiring the Administrator permission
-  when a lower permission should have been possible.  The Wrapper should now
-  allow service control to do whatever is possible from the Services control
-  panel.
-* Fix a memory corruption error if the value of wrapper.java.maxmemory was more
-  than 4 digits in length.  wrapper.java.initmemory did not have any problems.
-* (Professional) Add a new wrapper.event.<event_name>.email.client.host
-  property which makes it possible to configure the host name sent in EHLO and
-  HELO commands to the SMTP server.
-* Add a new default environment variable, WRAPPER_HOST_NAME, which stores the
-  name of the machine where the Wrapper is running.
-
 3.3.1
 * Add debug output showing the current os name and architecture to aid in
   debugging problems.
@@ -148,8 +11,15 @@ Java Service Wrapper Revision History.
   because the console title does not get reset correctly when the Wrapper
   process terminates.
 * Add support for HP-UX IA64 CPUs.
+* (Standard, Professional) Update the development license to version 1.1
+  so that a new copyright notice file can be shipped with user applications
+  rather than the full license text.
 * Update the license banner in source files so it is clearer that the user
-  is restricted by the license they agreed to.
+  is restricted by the license they agreed to.  The Community Edition may
+  be licensed under either the GPL2 based Community License, or the
+  Development License.  The source for the Standard and Professional Editions
+  of the Wrapper are proprietary.
+  http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 * Modify the Community edition so it will now display a Licensed to banner
   on startup if shipped with a Development License.  This is required to
   enable the distribution of the Community Edition under the Development
@@ -312,11 +182,12 @@ Java Service Wrapper Revision History.
   output more consistently.
 * Branch the code to support Community, Standard, and Professional Editions
   of the Java Service Wrapper.
-* (Standard, Professional) Add support for Server (Fixed) as well as
-  Development (OEM based) licenses.
-* (Standard, Professional) Add 64-bit versions of the Windows version.  The
-  64-bit Community Edition will not be distributed initially to support
-  ongoing development costs.
+* (Professional) Development and testing of the new Windows 64-bit version
+  required the purchase of 64-bit hardware and software.   We have decided
+  to delay the release of the Windows 64-bit Community edition until these
+  costs have been recouped.
+* (Professional) Add support for Server (Fixed) as well as Development
+  (OEM based) licenses.
 * (Professional) Add event handling callbacks for Wrapper start/stop, JVM
   start/stop, JVM started/stopped, JVM restart, JVM killed, and JVM unexpected
   exit events.

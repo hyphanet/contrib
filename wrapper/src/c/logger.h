@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -61,14 +61,6 @@
 
 #define MAX_LOG_SIZE 4096
 
-#ifdef WIN32
-#else
-/* A special prefix on log messages that can be bassed through from a forked process
-   so the parent will handle the log message correctly. */
-#define LOG_FORK_MARKER "#!#WrApPeR#!#"
-#define LOG_SPECIAL_MARKER "#!#WrApPeRsPeCiAl#!#"
-#endif
-
 /* * * Log level constants * * */
 
 /* No logging at all. */
@@ -123,10 +115,7 @@ extern void setConsoleStdoutHandle( HANDLE stdoutHandle );
 
 extern void outOfMemory(const char *context, int id);
 
-extern void setSimpleLogLevels();
-
 /* * Logfile functions * */
-extern int isLogfileAccessed();
 extern void setLogfilePath( const char *log_file_path );
 extern const char *getLogfilePath();
 extern int getLogfileRollModeForName( const char *logfileRollName );

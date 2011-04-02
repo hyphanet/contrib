@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2008 Tanuki Software, Inc.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -35,7 +35,7 @@ init:
 	if test ! -d .deps; then mkdir .deps; fi
 
 wrapper: $(wrapper_OBJECTS)
-	$(COMPILE) $(wrapper_OBJECTS) -o $(BIN)/wrapper -lm -lpthread
+	$(COMPILE) $(wrapper_OBJECTS) -o $(BIN)/wrapper -lm
 
 libwrapper.so: $(libwrapper_so_OBJECTS)
 	${COMPILE} -shared -no_unresolved -n32 -all $(libwrapper_so_OBJECTS) -o $(LIB)/libwrapper.so

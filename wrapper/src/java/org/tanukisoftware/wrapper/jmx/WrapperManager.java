@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.jmx;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -59,7 +59,7 @@ public class WrapperManager
      */
     public boolean isProfessionalEdition()
     {
-        return org.tanukisoftware.wrapper.WrapperManager.isProfessionalEdition();
+    	return org.tanukisoftware.wrapper.WrapperManager.isProfessionalEdition();
     }
     
     /**
@@ -70,7 +70,7 @@ public class WrapperManager
      */
     public boolean isStandardEdition()
     {
-        return org.tanukisoftware.wrapper.WrapperManager.isStandardEdition();
+    	return org.tanukisoftware.wrapper.WrapperManager.isStandardEdition();
     }
     /**
      * Sets the title of the console in which the Wrapper is running.  This

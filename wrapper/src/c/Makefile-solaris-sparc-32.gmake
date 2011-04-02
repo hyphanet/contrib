@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2008 Tanuki Software, Inc.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #

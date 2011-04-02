@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -61,6 +61,9 @@
 #ifndef USE_USLEEP
 #include <time.h>
 #endif
+
+#define __max(x,y) (((x) > (y)) ? (x) : (y))
+#define __min(x,y) (((x) < (y)) ? (x) : (y))
 
 #ifndef getsid
 /* getpid links ok on Linux, but is not defined correctly. */
@@ -284,7 +287,7 @@ void sigActionCommon(int sigNum, const char *sigName, siginfo_t *sigInfo, int mo
                 "%s trapped, but signals for timer thread are ignored.", sigName);
         }
     } else {
-        if (wrapperData->ignoreSignals & WRAPPER_IGNORE_SIGNALS_WRAPPER) {
+        if (wrapperData->ignoreSignals) {
             log_printf_queue(TRUE, WRAPPER_SOURCE_WRAPPER, LEVEL_STATUS,
                 "%s trapped, but ignored.", sigName);
         } else {
@@ -584,10 +587,10 @@ void *timerRunner(void *arg) {
         lastTickOffset = tickOffset;
     }
 
-    /* Will never get here.  Solaris warns if the return is there (some on x86, not sparc).  Others warn if it is not. */
-/* #if !defined(SOLARIS) */
+    /* Will never get here.  Solaris warns if the return is there.  Others warn if it is not. */
+#if !defined(SOLARIS)
     return NULL;
-/* #endif */
+#endif
 }
 
 /**
@@ -837,14 +840,14 @@ void wrapperExecute() {
             /* Send output to the pipe by dupicating the pipe fd and setting the copy as the stdout fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDOUT_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    "%sUnable to set JVM's stdout: %s", LOG_FORK_MARKER, getLastErrorText());
+                           "Unable to set JVM's stdout: %s", getLastErrorText());
                 return;
             }
         
             /* Send errors to the pipe by dupicating the pipe fd and setting the copy as the stderr fd. */
             if (dup2(pipedes[STDOUT_FILENO], STDERR_FILENO) < 0) {
                 log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                    "%sUnable to set JVM's stderr: %s", LOG_FORK_MARKER, getLastErrorText());
+                           "Unable to set JVM's stderr: %s", getLastErrorText());
                 return;
             }
 
@@ -855,28 +858,7 @@ void wrapperExecute() {
             
             /* We reached this point...meaning we were unable to start. */
             log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ERROR,
-                "%sUnable to start JVM: %s (%d)", LOG_FORK_MARKER, getLastErrorText(), errno);
-            
-            if (wrapperData->isAdviserEnabled) {
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "%s", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%s------------------------------------------------------------------------", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%sAdvice:", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%sUsually when the Wrapper fails to start the JVM process, it is because", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%sof a problem with the value of the configured hava command.  Currently:", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%swrapper.java.command=%s", LOG_FORK_MARKER, getStringProperty(properties, "wrapper.java.command", "java"));
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%sPlease make sure that the PATH or any other referenced environment", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%svariables are correctly defined for the current environment.", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE,
-                    "%s------------------------------------------------------------------------", LOG_FORK_MARKER );
-                log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_ADVICE, "%s", LOG_FORK_MARKER );
-            }
+                "Unable to start JVM: %s (%d)", getLastErrorText(), errno);
             
             /* This process needs to end. */
             exit(1);
@@ -1387,18 +1369,14 @@ int main(int argc, char **argv) {
         return 1; /* For compiler. */
     }
     
-    wrapperLoadHostName();
-    
     /* At this point, we have a command, confFile, and possibly additional arguments. */
     if (!strcmpIgnoreCase(wrapperData->argCommand,"?") || !strcmpIgnoreCase(wrapperData->argCommand,"-help")) {
         /* User asked for the usage. */
-        setSimpleLogLevels();
         wrapperUsage(argv[0]);
         appExit(0);
         return 0; /* For compiler. */
     } else if (!strcmpIgnoreCase(wrapperData->argCommand,"v") || !strcmpIgnoreCase(wrapperData->argCommand,"-version")) {
         /* User asked for version. */
-        setSimpleLogLevels();
         wrapperVersionBanner();
         appExit(0);
         return 0; /* For compiler. */
@@ -1480,8 +1458,7 @@ int main(int argc, char **argv) {
         appExit(wrapperRunConsole());
         return 0; /* For compiler. */
     } else {
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "");
-        log_printf(WRAPPER_SOURCE_WRAPPER, LEVEL_WARN, "Unrecognized option: -%s", wrapperData->argCommand);
+        printf("\nUnrecognized option: -%s\n", wrapperData->argCommand);
         wrapperUsage(argv[0]);
         appExit(1);
         return 1; /* For compiler. */

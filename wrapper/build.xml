@@ -236,19 +236,6 @@
         <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_5.arg.2}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_5}"/>
         </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_32_6}">
-            <and>
-                <not><isset property="vcvars.bat"/></not>
-                <equals arg1="${bits}" arg2="32"/>
-                <available file="${vcvars.v8_32_6}"/>
-            </and>
-        </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_32_6.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
-        </condition>
-        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_32_6.arg.2}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_32_6}"/>
-        </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_x86_64_1}">
             <and>
                 <equals arg1="${bits}" arg2="64"/>
@@ -275,19 +262,6 @@
         </condition>
         <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_3.arg.2}">
             <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_3}"/>
-        </condition>
-        <condition property="vcvars.bat" value="${vcvars.v8_x86_64_4}">
-            <and>
-                <equals arg1="${bits}" arg2="64"/>
-                <equals arg1="${dist.arch}" arg2="x86"/>
-                <available file="${vcvars.v8_x86_64_4}"/>
-            </and>
-        </condition>
-        <condition property="vcvars.bat.arg.1" value="${vcvars.v8_x86_64_4.arg.1}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
-        </condition>
-        <condition property="vcvars.bat.arg.2" value="${vcvars.v8_x86_64_4.arg.2}">
-            <equals arg1="${vcvars.bat}" arg2="${vcvars.v8_x86_64_4}"/>
         </condition>
         <condition property="vcvars.bat" value="${vcvars.v8_ia_64_1}">
             <and>
@@ -634,49 +608,22 @@
         <jar jarfile="${lib.dir}/wrapper.jar"
              basedir="${build.classes}"
              includes="**/*.class,**/*.properties"
-             excludes="**/test/*,**/test2/*">
+             excludes="**/test/*">
             <manifest>
                 <attribute name="Built-By" value="${user.name}"/>
                 <attribute name="Package" value="org.tanukisoftware.wrapper"/>
                 <attribute name="Extension-Name" value="wrapper"/>
                 <attribute name="Specification-Title" value="Java Service Wrapper"/>
-                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
+                <attribute name="Specification-Vendor" value="Tanuki Software, Inc."/>
                 <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
-                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
-                <attribute name="Implementation-Version" value="${version.root}"/>
+                <attribute name="Implementation-Vendor" value="Tanuki Software, Inc."/>
+                <attribute name="Implementation-Version" value="${Version}"/>
             </manifest>
         </jar>
         <jar jarfile="${lib.dir}/wrappertest.jar"
              basedir="${build.classes}"
-             includes="**/test/*">
-            <manifest>
-                <attribute name="Built-By" value="${user.name}"/>
-                <attribute name="Package" value="org.tanukisoftware.wrapper"/>
-                <attribute name="Extension-Name" value="wrapper"/>
-                <attribute name="Specification-Title" value="Java Service Wrapper"/>
-                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
-                <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
-                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
-                <attribute name="Implementation-Version" value="${version.root}"/>
-                <attribute name="Main-Class" value="org.tanukisoftware.wrapper.test.JarMain"/>
-            </manifest>
-        </jar>
-        <jar jarfile="${lib.dir}/wrappertest2.jar"
-             basedir="${build.classes}"
-             includes="**/test2/*">
-            <manifest>
-                <attribute name="Built-By" value="${user.name}"/>
-                <attribute name="Package" value="org.tanukisoftware.wrapper"/>
-                <attribute name="Extension-Name" value="wrapper"/>
-                <attribute name="Specification-Title" value="Java Service Wrapper"/>
-                <attribute name="Specification-Vendor" value="Tanuki Software, Ltd."/>
-                <attribute name="Implementation-Title" value="org.tanukisoftware.wrapper"/>
-                <attribute name="Implementation-Vendor" value="Tanuki Software, Ltd."/>
-                <attribute name="Implementation-Version" value="${version.root}"/>
-                <attribute name="Main-Class" value="org.tanukisoftware.wrapper.test2.Jar2Main"/>
-                <attribute name="Class-Path" value="wrappertest.jar"/>
-            </manifest>
-        </jar>
+             includes="**/test/*"
+             />
         
         <condition property="do.sign">
             <isset property="signjar.alias"/>
@@ -1262,70 +1209,7 @@ original tar distribution due to a lack of support for long path names in some t
         <echo>**********************************************************</echo>
         <fail message="dist/delta-${version} directories not found."/>
     </target>
-    <target name="release-delta:extract-platform:init">
-        <property name="is.archivetype.${d-archivetype}" value="TRUE"/>
-    </target>
-    <target name="release-delta:extract-platform:zip" depends="release-delta:extract-platform:init" if="is.archivetype.zip">
-        <unzip src="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.zip"
-            dest="dist/delta-${version}"/>
-    </target>
-    <target name="release-delta:extract-platform:tar.gz" depends="release-delta:extract-platform:init" if="is.archivetype.tar.gz">
-        <gunzip src="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.tar.gz"
-            dest="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.tar"/>
-        <untar src="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}.tar"
-            dest="dist/delta-${version}"/>
-    </target>
-    <target name="release-delta:extract-platform" depends="release-delta:extract-platform:zip, release-delta:extract-platform:tar.gz">
-        <copy file="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}/bin/${d-wrapperbinhead}${d-wrapperbintail}"
-            tofile="dist/delta-${version}/bin/${d-wrapperbinhead}-${d-osname}-${d-osarch}-${d-bits}${d-wrapperbintail}"
-            overwrite="true"/>
-        <copy file="dist/delta-${version}/wrapper-${d-osname}-${d-osarch}-${d-bits}-${version}/lib/${d-wrapperlibhead}${d-wrapperlibtail}"
-            tofile="dist/delta-${version}/lib/${d-wrapperlibhead}-${d-osname}-${d-osarch}-${d-bits}${d-wrapperlibtail}"
-            overwrite="true"/>
-    </target>
-    <macrodef name="release-delta-extract-platform">
-        <attribute name="osname"/>
-        <attribute name="osarch"/>
-        <attribute name="bits"/>
-        <attribute name="wrapperbinhead"/>
-        <attribute name="wrapperbintail"/>
-        <attribute name="wrapperlibhead"/>
-        <attribute name="wrapperlibtail"/>
-        <attribute name="archivetype"/>
-        <sequential>
-            <antcall target="release-delta:extract-platform">
-                <param name="d-osname" value="@{osname}"/>
-                <param name="d-osarch" value="@{osarch}"/>
-                <param name="d-bits" value="@{bits}"/>
-                <param name="d-wrapperbinhead" value="@{wrapperbinhead}"/>
-                <param name="d-wrapperbintail" value="@{wrapperbintail}"/>
-                <param name="d-wrapperlibhead" value="@{wrapperlibhead}"/>
-                <param name="d-wrapperlibtail" value="@{wrapperlibtail}"/>
-                <param name="d-archivetype" value="@{archivetype}"/>
-            </antcall>
-        </sequential>
-    </macrodef>
-    <target name="release-delta:extract-platforms">
-        <release-delta-extract-platform osname="aix" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".a" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="aix" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".a" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="ia" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="parisc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="hpux" osarch="parisc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".sl" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="ia" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="ppc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="ppc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="linux" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="macosx" osarch="universal" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="macosx" osarch="universal" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".jnilib" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="sparc" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="sparc" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="solaris" osarch="x86" bits="64" wrapperbinhead="wrapper" wrapperbintail="" wrapperlibhead="libwrapper" wrapperlibtail=".so" archivetype="tar.gz"/>
-        <release-delta-extract-platform osname="windows" osarch="x86" bits="32" wrapperbinhead="wrapper" wrapperbintail=".exe" wrapperlibhead="wrapper" wrapperlibtail=".dll" archivetype="zip"/>
-    </target>
-    <target name="release-delta" depends="pre-release:check, release-delta:check, pre-release:restore-jdocs, release-delta:extract-platforms">
+    <target name="release-delta" depends="pre-release:check, release-delta:check, pre-release:restore-jdocs">
         <property name="deltareleasefile" value="wrapper-delta-pack-${version}"/>
         <property name="releasedir" value="${build.dir}/${deltareleasefile}"/>
         <delete dir="${releasedir}"/>
@@ -1442,7 +1326,6 @@ original tar distribution due to a lack of support for long path names in some t
                 <exclude name="${deltareleasefile}/lib/libwrapper-*"/>
             </tarfileset>
             <tarfileset dir="${build.dir}">
-                <include name="${deltareleasefile}/bin/wrapper-windows-*"/>
             </tarfileset>
         </tar>
         <gzip zipfile="${dist.dir}/${deltareleasefile}.tar.gz" src="${build.dir}/${deltareleasefile}.tar" />
@@ -1461,7 +1344,7 @@ original tar distribution due to a lack of support for long path names in some t
     <!-- Release                                                             -->
     <!-- =================================================================== -->
     <target name="release" 
-        depends="test-setup, bin, conf, release-windows, release-unix"
+        depends="release-windows, release-unix"
         description="Builds all release files for the current platform">
     </target>
     

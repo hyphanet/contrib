@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -66,13 +66,6 @@ public interface WrapperListener
      *  should be called to extend the timeout period.  If for some reason,
      *  the stop method can not return, then it must call
      *  WrapperManager.stopped() to avoid warning messages from the Wrapper.
-     * <p>
-     * By default, the stop() method will only be called if the start() method
-     *  has completed and returned null.  There are however cases in which the
-     *  stop method should be called on shutdown even if the start method has
-     *  not returned or returned an exit code.   This functionality can be
-     *  enabled by setting the following property in the Wrapper configuration
-     *  file: wrapper.listener.force_stop=TRUE.
      * <p>
      * WARNING - Directly calling System.exit in this method will result in
      *  a deadlock in cases where this method is called from within a shutdown

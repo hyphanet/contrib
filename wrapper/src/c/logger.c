@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -144,9 +144,6 @@ size_t threadMessageBufferSize = 0;
 char *threadPrintBuffer = NULL;
 size_t threadPrintBufferSize = 0;
 
-/* Flag which gets set when a log entry is written to the log file. */
-int logFileAccessed = FALSE;
-
 /* Logger file pointer.  It is kept open under high log loads but closed whenever it has been idle. */
 FILE *logfileFP = NULL;
 
@@ -232,7 +229,6 @@ int initLogging() {
     }
 #endif
     
-    logFileAccessed = FALSE;
     logFileLastNowDate[0] = '\0';
 
     for ( threadId = 0; threadId < WRAPPER_THREAD_COUNT; threadId++ ) {
@@ -242,7 +238,7 @@ int initLogging() {
         {
             queueWrapped[threadId] = 0;
             queueWriteIndex[threadId] = 0;
-            queueReadIndex[threadId] = 0;
+            queueReadIndex[threadId] = -1; /* Start here so equality checks work. */
             queueMessages[threadId][i] = NULL;
             queueSourceIds[threadId][i] = 0;
             queueLevels[threadId][i] = 0;
@@ -280,15 +276,9 @@ void logRegisterThread( int thread_id ) {
     threadId = pthread_self();
 #endif
 
-#ifdef _DEBUG
-    printf("logRegisterThread(%d)\n", thread_id);
-#endif
     if ( thread_id >= 0 && thread_id < WRAPPER_THREAD_COUNT )
     {
         threadIds[thread_id] = threadId;
-#ifdef _DEBUG
-        printf("logRegisterThread(%d) => %lu\n", thread_id, threadId);
-#endif
     }
 }
 
@@ -304,11 +294,7 @@ int getThreadId() {
     /* printf( "threadId=%lu\n", threadId ); */
 
     for ( i = 0; i < WRAPPER_THREAD_COUNT; i++ ) {
-#ifdef WIN32
         if ( threadIds[i] == threadId ) {
-#else
-        if ( pthread_equal(threadIds[i],threadId) ) {
-#endif
             return i;
         }
     }
@@ -385,19 +371,7 @@ int getLogFacilityForName( const char *logFacilityName ) {
 }
 #endif
 
-/** Sets the console log levels to a simple format for help and usage messages. */
-void setSimpleLogLevels() {
-    /* Force the log levels to control output. */
-    setConsoleLogFormat("M");
-    setConsoleLogLevelInt(LEVEL_INFO);
-    setLogfileLevelInt(LEVEL_NONE);
-    setSyslogLevelInt(LEVEL_NONE);
-}
-
 /* Logfile functions */
-int isLogfileAccessed() {
-    return logFileAccessed;
-}
 
 void setLogfilePath( const char *log_file_path ) {
     size_t len = strlen(log_file_path);
@@ -704,29 +678,6 @@ int getLowLogLevel() {
     return lowLogLevel;
 }
 
-char* preparePrintBuffer(size_t reqSize) {
-    if (threadPrintBuffer == NULL) {
-        threadPrintBuffer = (char *)malloc(reqSize * sizeof(char));
-        if (!threadPrintBuffer) {
-            printf("Out of memory is logging code (PPB1)\n");
-            threadPrintBufferSize = 0;
-            return NULL;
-        }
-        threadPrintBufferSize = reqSize;
-    } else if (threadPrintBufferSize < reqSize) {
-        free(threadPrintBuffer);
-        threadPrintBuffer = (char *)malloc(reqSize * sizeof(char));
-        if (!threadPrintBuffer) {
-            printf("Out of memory is logging code (PPB2)\n");
-            threadPrintBufferSize = 0;
-            return NULL;
-        }
-        threadPrintBufferSize = reqSize;
-    }
-    
-    return threadPrintBuffer;
-}
-
 /* Writes to and then returns a buffer that is reused by the current thread.
  *  It should not be released. */
 char* buildPrintBuffer( int source_id, int level, int threadId, int queued, struct tm *nowTM, int nowMillis, const char *format, const char *message ) {
@@ -780,9 +731,24 @@ char* buildPrintBuffer( int source_id, int level, int threadId, int queued, stru
 
     /* Always add room for the null. */
     reqSize += 1;
-    
-    if ( !preparePrintBuffer(reqSize)) {
-        return NULL;
+
+    if ( threadPrintBuffer == NULL ) {
+        threadPrintBuffer = (char *)malloc( reqSize * sizeof( char ) );
+        if (!threadPrintBuffer) {
+            printf("Out of memory is logging code (BPB1)\n");
+            threadPrintBufferSize = 0;
+            return NULL;
+        }
+        threadPrintBufferSize = reqSize;
+    } else if ( threadPrintBufferSize < reqSize ) {
+        free( threadPrintBuffer );
+        threadPrintBuffer = (char *)malloc( reqSize * sizeof( char ) );
+        if (!threadPrintBuffer) {
+            printf("Out of memory is logging code (BPB2)\n");
+            threadPrintBufferSize = 0;
+            return NULL;
+        }
+        threadPrintBufferSize = reqSize;
     }
 
     /* Always start with a null terminated string in case there are no formats specified. */
@@ -949,57 +915,11 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
 #ifdef WIN32
     struct _timeb timebNow;
 #else
-    size_t      reqSize;
     struct timeval timevalNow;
-    char        intBuffer[3];
-    char*       pos;
 #endif
     time_t      now;
     int         nowMillis;
     struct tm   *nowTM;
-
-#ifdef WIN32
-#else
-    /* See if this is a special case log entry from the forked child. */
-    if (strstr(message, LOG_FORK_MARKER) == message) {
-        /* Found the marker.  We only want to log the message as is to the console with a special prefix.
-         *  This is used to pass the log output through the pipe to the parent Wrapper process where it
-         *  will be decoded below and displayed appropriately. */
-        reqSize = strlen(LOG_SPECIAL_MARKER) + 1 + 2 + 1 + 2 + 1 + 2 + 1 + strlen(message) - strlen(LOG_FORK_MARKER) + 1;
-        if (!(printBuffer = preparePrintBuffer(reqSize))) {
-            return;
-        }
-        sprintf(printBuffer, "%s|%02d|%02d|%02d|%s", LOG_SPECIAL_MARKER, source_id, level, threadId, message + strlen(LOG_FORK_MARKER));
-        fprintf(stdout, "%s\n", printBuffer);
-        fflush(stdout );
-        return;
-    } else if ((strstr(message, LOG_SPECIAL_MARKER) == message) && (strlen(message) >= strlen(LOG_SPECIAL_MARKER) + 10)) {
-        /* Got a special encoded log message from the child process.   Parse it and continue as if the log
-         *  message came from this process. */ 
-        pos = (char *)(message + strlen(LOG_SPECIAL_MARKER) + 1);
-        
-        /* source_id */
-        memcpy(intBuffer, pos, 2);
-        intBuffer[2] = '\0';
-        source_id = atoi(intBuffer);
-        pos += 3;
-        
-        /* level */
-        memcpy(intBuffer, pos, 2);
-        intBuffer[2] = '\0';
-        level = atoi(intBuffer);
-        pos += 3;
-        
-        /* threadId */
-        memcpy(intBuffer, pos, 2);
-        intBuffer[2] = '\0';
-        threadId = atoi(intBuffer);
-        pos += 3;
-        
-        /* message */
-        message = pos;
-    }
-#endif	
 
     /* Build a timestamp */
 #ifdef WIN32
@@ -1015,7 +935,6 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
 
     if ( threadId < 0 )
     {
-        /* The current thread was specified.  Resolve what thread this actually is. */
         threadId = getThreadId();
     }
     
@@ -1093,7 +1012,6 @@ void log_printf_message( int source_id, int level, int threadId, int queued, con
                 printBuffer = buildPrintBuffer( source_id, level, threadId, queued, nowTM, nowMillis, logfileFormat, message );
                 if (printBuffer) {
                     fprintf( logfileFP, "%s\n", printBuffer );
-                    logFileAccessed = TRUE;
                     
                     /* Increment the activity counter. */
                     logfileActivityCount++;
@@ -1964,12 +1882,12 @@ void log_printf_queueInner( int source_id, int level, char *buffer ) {
     int localWriteIndex;
     int localReadIndex;
 
+#ifdef _DEBUG
+    printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex, buffer );
+#endif
+
     /* Get the thread id here to keep the time below to a minimum. */
     threadId = getThreadId();
-
-#ifdef _DEBUG
-    printf( "LOG ENQUEUE[%d]: %s\n", queueWriteIndex[threadId], buffer );
-#endif
 
     /* NOTE - This function is not synchronized.  So be very careful and think
      *        about what would happen if the queueWrapped and or queueWriteIndex

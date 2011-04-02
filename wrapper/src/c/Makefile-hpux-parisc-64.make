@@ -1,4 +1,4 @@
-# Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+# Copyright (c) 1999, 2008 Tanuki Software, Inc.
 # http://www.tanukisoftware.com
 # All rights reserved.
 #
@@ -7,7 +7,7 @@
 # license agreement you entered into with Tanuki Software.
 # http://wrapper.tanukisoftware.org/doc/english/licenseOverview.html
 
-COMPILE = cc +z +DD64 -O3 -Wall -DHPUX
+COMPILE = cc +z +DD64 -O3 -Wall -DHPUX -D_XOPEN_SOURCE_EXTENDED
 
 INCLUDE=$(JAVA_HOME)/include
 

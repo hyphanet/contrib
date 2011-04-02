@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -24,11 +24,6 @@ public class WrapperServiceException
      * Serial Version UID.
      */
     private static final long serialVersionUID = 5163822791166376887L;
-    
-    /**
-     * The error code.
-     */
-    private final int m_errorCode;
 
     /*---------------------------------------------------------------
      * Constructors
@@ -36,36 +31,11 @@ public class WrapperServiceException
     /**
      * Creates a new WrapperServiceException.
      *
-     * @param errorCode ErrorCode which was encountered.
      * @param message Message describing the exception.
      */
-    WrapperServiceException( int errorCode, byte[] message )
+    WrapperServiceException( byte[] message )
     {
         super( new String( message ) );
-        m_errorCode = errorCode;
-    }
-
-    /*---------------------------------------------------------------
-     * Methods
-     *-------------------------------------------------------------*/
-    /**
-     * Returns the error code.
-     *
-     * @return The error code.
-     */
-    public int getErrorCode()
-    {
-        return m_errorCode;
-    }
-    
-    /**
-     * Return string representation of the Exception.
-     *
-     * @return String representation of the Exception.
-     */
-    public String toString()
-    {
-        return this.getClass().getName() + " " + getMessage() + " Error Code: " + getErrorCode(); 
     }
 }
 

@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.event;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -30,27 +30,6 @@ package org.tanukisoftware.wrapper.event;
  *   <dd>The system is shutting down.</dd>
  *   <dt>User code (128-255)</dt>
  *   <dd>User defined code.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND (3328)</dt>
- *   <dd>The system being suspended.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED (3330)</dt>
- *   <dd>Permission to suspend the computer was denied by a process.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND (3332)</dt>
- *   <dd>The computer is about to enter a suspended state.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_RESUMECRITICAL (3334)</dt>
- *   <dd>The system has resumed operation. This event can indicate that some or
- *       all applications did not receive a SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND
- *       event.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND (3335)</dt>
- *   <dd>The system has resumed operation after being suspended.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_BATTERYLOW (3337)</dt>
- *   <dd>The battery power is low.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE (3338)</dt>
- *   <dd>There is a change in the power status of the computer, such as a
- *       switch from battery power to A/C.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_OEMEVENT (3339)</dt>
- *   <dd>The APM BIOS has signaled an APM OEM event.</dd>
- *   <dt>WrapperManager.SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC (3346)</dt>
- *   <dd>The computer has woken up automatically to handle an event.</dd>
  * </dl>
  *
  * @author Leif Mortenson <leif@tanukisoftware.com>

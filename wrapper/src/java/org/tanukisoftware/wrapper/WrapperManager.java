@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -50,10 +50,8 @@ import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
@@ -178,50 +176,6 @@ public final class WrapperManager
     /** Service Control code which can be received when the system is shutting down. */
     public static final int SERVICE_CONTROL_CODE_SHUTDOWN    = 5;
     
-    /** Service Control code which is received when the system being suspended. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPEND       = 0x0D00;
-    
-    /** Service Control code which is received when permission to suspend the
-     *   computer was denied by a process.  Support for this event was removed
-     *   from the Windows OS starting with Vista.*/
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_QUERYSUSPENDFAILED = 0x0D02;
-    
-    /** Service Control code which is received when the computer is about to
-     *   enter a suspended state. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND            = 0x0D04;
-    
-    /** Service Control code which is received when the system has resumed
-     *   operation. This event can indicate that some or all applications did
-     *   not receive a SERVICE_CONTROL_CODE_POWEREVENT_SUSPEND event.
-     *   Support for this event was removed from the Windows OS starting with
-     *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMECRITICAL     = 0x0D06;
-    
-    /** Service Control code which is received when the system has resumed
-     *   operation after being suspended. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMESUSPEND      = 0x0D07;
-    
-    /** Service Control code which is received when the battery power is low.
-     *   Support for this event was removed from the Windows OS starting with
-     *   Vista.  See SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_BATTERYLOW         = 0x0D09;
-    
-    /** Service Control code which is received when there is a change in the
-     *   power status of the computer, such as a switch from battery power to
-     *   A/C. The system also broadcasts this event when remaining battery
-     *   power slips below the threshold specified by the user or if the
-     *   battery power changes by a specified percentage. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_POWERSTATUSCHANGE  = 0x0D0A;
-    
-    /** Service Control code which is received when the APM BIOS has signaled
-     *   an APM OEM event.  Support for this event was removed from the Windows
-     *   OS starting with Vista. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_OEMEVENT           = 0x0D0B;
-    
-    /** Service Control code which is received when the computer has woken up
-     *   automatically to handle an event. */
-    public static final int SERVICE_CONTROL_CODE_POWEREVENT_RESUMEAUTOMATIC    = 0x0D12;
-    
     /** Reference to the original value of System.out. */
     private static PrintStream m_out;
     
@@ -241,11 +195,6 @@ public final class WrapperManager
     private static boolean m_securityManagerChecked = false;
     
     private static boolean m_disposed = false;
-    
-    /** The starting flag is set when the Application has been asked to start. */
-    private static boolean m_starting = false;
-    
-    /** The started flag is set when the Application has completed its startup. */
     private static boolean m_started = false;
     private static WrapperManager m_instance = null;
     private static Thread m_hook = null;
@@ -253,12 +202,6 @@ public final class WrapperManager
     
     /* Flag which records when the shutdownJVM method has completed. */
     private static boolean m_shutdownJVMComplete = false;
-    
-    /** Map which stores shutdown locks for each thread. */
-    private static Map m_shutdownLockMap = new HashMap();
-    
-    /** Tracks the total number of outstanding shutdown locks. */
-    private static int m_shutdownLocks = 0;
     
     private static String[] m_args;
     private static int m_port    = DEFAULT_PORT;
@@ -303,11 +246,6 @@ public final class WrapperManager
      *   warning is displayed. */
     private static int m_timerSlowThreshold;
     
-    /** Flag which controls whether or not the WrapperListener.stop method will
-     *   be called on shutdown when the WrapperListener.start method has not
-     *   returned or returned an exit code. */
-    private static boolean m_listenerForceStop;
-    
     /**
      * Bit depth of the currently running JVM.  Will be 32 or 64.
      *  A 64-bit JVM means that the system is also 64-bit, but a 32-bit JVM
@@ -326,6 +264,7 @@ public final class WrapperManager
     private static int m_lastPingTicks;
     private static ServerSocket m_serverSocket;
     private static Socket m_socket;
+    private static boolean m_shuttingDown = false;
     private static boolean m_appearHung = false;
     
     private static Method m_addShutdownHookMethod = null;
@@ -480,10 +419,6 @@ public final class WrapperManager
         boolean disableShutdownHook = WrapperSystemPropertyUtil.getBooleanProperty(
             "wrapper.disable_shutdown_hook", false );
         
-        // Check to see if the listener stop method should always be called.
-        m_listenerForceStop = WrapperSystemPropertyUtil.getBooleanProperty(
-            "wrapper.listener.force_stop", false );
-        
         // Locate the add and remove shutdown hook methods using reflection so
         //  that this class can be compiled on 1.2.x versions of java.
         try
@@ -583,12 +518,6 @@ public final class WrapperManager
             if ( m_debug )
             {
                 m_outDebug.println( "Using wrapper" );
-            }
-            
-            if ( WrapperSystemPropertyUtil.getBooleanProperty( "wrapper.disable_console_input", false ) )
-            {
-                // Replace the System.in stream with one of our own to disable it.
-                System.setIn( new WrapperInputStream() );
             }
             
             // A port must have been specified.
@@ -705,9 +634,7 @@ public final class WrapperManager
                     int lastTickOffset = 0;
                     boolean first = true;
                     
-                    // This loop should never exit because the tick counting is required
-                    //  for the life of the JVM.
-                    while ( true )
+                    while ( !m_shuttingDown )
                     {
                         int offsetDiff;
                         if ( !m_useSystemTime )
@@ -792,22 +719,18 @@ public final class WrapperManager
                         
                         if ( m_libraryOK )
                         {
-                            // To avoid the JVM shutting down while we are in the middle of a JNI call, 
-                            if ( !isShuttingDown() )
+                            // Look for control events in the wrapper library.
+                            //  There may be more than one.
+                            int event = 0;
+                            do
                             {
-                                // Look for control events in the wrapper library.
-                                //  There may be more than one.
-                                int event = 0;
-                                do
+                                event = WrapperManager.nativeGetControlEvent();
+                                if ( event != 0 )
                                 {
-                                    event = WrapperManager.nativeGetControlEvent();
-                                    if ( event != 0 )
-                                    {
-                                        WrapperManager.controlEvent( event );
-                                    }
+                                    WrapperManager.controlEvent( event );
                                 }
-                                while ( event != 0 );
                             }
+                            while ( event != 0 );
                         }
                         
                         // Wait before checking for another control event.
@@ -2049,145 +1972,7 @@ public final class WrapperManager
         //  JVM, then we want to start now.
         if ( !isControlledByNativeWrapper() )
         {
-            startInner( true );
-        }
-    }
-    
-    /**
-     * Returns true if the JVM is in the process of shutting down.  This can be
-     *  useful to avoid starting long running processes when it is known that the
-     *  JVM will be shutting down shortly.
-     *
-     * @return true if the JVM is shutting down.
-     */
-    public static boolean isShuttingDown()
-    {
-        return m_stopping;
-    }
-    
-    private static class ShutdownLock
-        extends Object
-    {
-        private final Thread m_thread;
-        private int m_count;
-        
-        private ShutdownLock( Thread thread )
-        {
-            m_thread = thread;
-        }
-    }
-    
-    /**
-     * Increase the number of locks which will prevent the Wrapper from letting
-     *  the JVM process exit on shutdown.   This is primarily useful around
-     *  calls to native JNI functions in daemon threads where it has been shown
-     *  that premature JVM exits can cause the JVM process to crash on shutdown.
-     * <p>
-     * Normal non-daemon threads should not require these locks as the very
-     *  fact that the non-daemon thread is still running will prevent the JVM
-     *  from shutting down.
-     * <p>
-     * It is possible to make multiple calls within a single thread.  Each call
-     *  should always be paired with a call to releaseShutdownLock().
-     *
-     * @throws WrapperShuttingDownException If called after the Wrapper has
-     *                                      already begun the shutdown of the
-     *                                      JVM.
-     */
-    public static void requestShutdownLock()
-        throws WrapperShuttingDownException
-    {
-        synchronized( WrapperManager.class )
-        {
-            if ( m_stopping )
-            {
-                throw new WrapperShuttingDownException();
-            }
-            
-            Thread thisThread = Thread.currentThread();
-            ShutdownLock lock = (ShutdownLock)m_shutdownLockMap.get( thisThread );
-            if ( lock == null )
-            {
-                lock = new ShutdownLock( thisThread );
-                m_shutdownLockMap.put( thisThread, lock );
-            }
-            lock.m_count++;
-            m_shutdownLocks++;
-            
-            if ( m_debug )
-            {
-                m_outDebug.println( "WrapperManager.requestShutdownLock() called by thread: "
-                    + thisThread.getName() + ". New thread lock count: " + lock.m_count
-                    + ", total lock count: " + m_shutdownLocks );
-            }
-        }
-    }
-    
-    /**
-     * Called by a thread which has previously called requestShutdownLock().
-     *
-     * @throws IllgalStateException If called without first calling requestShutdownLock() from
-     *                              the same thread.
-     */
-    public static void releaseShutdownLock()
-        throws IllegalStateException
-    {
-        synchronized( WrapperManager.class )
-        {
-            Thread thisThread = Thread.currentThread();
-            ShutdownLock lock = (ShutdownLock)m_shutdownLockMap.get( thisThread );
-            if ( lock == null )
-            {
-                throw new IllegalStateException( "requestShutdownLock was not called from this thread." );
-            }
-            
-            lock.m_count--;
-            m_shutdownLocks--;
-            
-            if ( m_debug )
-            {
-                m_outDebug.println( "WrapperManager.releaseShutdownLock() called by thread: "
-                    + thisThread.getName() + ". New thread lock count: " + lock.m_count
-                    + ", total lock count: " + m_shutdownLocks );
-            }
-            
-            if ( lock.m_count <= 0 )
-            {
-                m_shutdownLockMap.remove( thisThread );
-            }
-            
-            WrapperManager.class.notify();
-        }
-    }
-    
-    /**
-     * Waits for any outstanding locks to be released before shutting down.
-     */
-    private static void waitForShutdownLocks()
-    {
-        synchronized( WrapperManager.class )
-        {
-            if ( m_debug )
-            {
-                m_outDebug.println( "wait for " + m_shutdownLocks + " shutdown locs to be released." );
-            }
-            
-            while ( m_shutdownLocks > 0 )
-            {
-                try
-                {
-                    WrapperManager.class.wait( 5000 );
-                }
-                catch ( InterruptedException e )
-                {
-                    // Ignore and continue.
-                }
-                
-                if ( m_shutdownLocks > 0 )
-                {
-                    m_outInfo.println( "Waiting for " + m_shutdownLocks + " shutdown locks to be released..." );
-                }
-            }
+            startInner();
         }
     }
     
@@ -2804,11 +2589,7 @@ public final class WrapperManager
                 break;
                 
             default:
-                if ( ( controlCode >= 128 ) && ( controlCode <= 255 ) ) {
-                    action = WrapperServicePermission.ACTION_USER_CODE;
-                } else {
-                    throw new IllegalArgumentException( "The specified controlCode is invalid." );
-                }
+                action = WrapperServicePermission.ACTION_USER_CODE;
                 break;
             }
             
@@ -3145,39 +2926,14 @@ public final class WrapperManager
     }
     
     /**
-     * Called by startInner when the WrapperListner.start method has completed.
-     */
-    private static void startCompleted()
-    {
-        synchronized( WrapperManager.class )
-        {
-            m_startedTicks = getTicks();
-            
-            // Let the startup thread die since the application has been started.
-            m_startupRunner = null;
-            
-            // Check the SecurityManager here as it is possible that it was set in the
-            //  listener's start method.
-            checkSecurityManager();
-            
-            // Signal that the application has started.
-            signalStarted();
-        }
-    }
-    
-    /**
      * Informs the listener that it should start.
-     *
-     * @param block True if this call should block for the WrapperListener.start method to complete.
      */
-    private static void startInner( boolean block )
+    private static void startInner()
     {
         // Set the thread priority back to normal so that any spawned threads
         //  will use the normal priority
         int oldPriority = Thread.currentThread().getPriority();
         Thread.currentThread().setPriority( Thread.NORM_PRIORITY );
-
-        m_starting = true;
         
         // This method can be called from the connection thread which must be a
         //  daemon thread by design.  We need to call the WrapperListener.start method
@@ -3190,8 +2946,6 @@ public final class WrapperManager
             {
                 m_outDebug.println( "No WrapperListener has been set.  Nothing to start." );
             }
-            
-            startCompleted();
         }
         else
         {
@@ -3205,77 +2959,42 @@ public final class WrapperManager
             final Integer[] resultF = new Integer[1];
             final Throwable[] tF = new Throwable[1];
             
-            // Start in a dedicated thread.
-            Thread startRunner = new Thread( "WrapperListener_start_runner" )
+            if ( Thread.currentThread().isDaemon() )
             {
-                public void run()
+                // Start in a dedicated thread.
+                Thread startRunner = new Thread( "WrapperListener_start_runner" )
                 {
-                    if ( m_debug )
+                    public void run()
                     {
-                       m_outDebug.println( "WrapperListener.start runner thread started." );
-                    }
-                    
-                    try
-                    {
-                        // This is user code, so don't trust it.
+                        if ( m_debug )
+                        {
+                           m_outDebug.println( "WrapperListener.start runner thread started." );
+                        }
+                        
                         try
                         {
-                            resultF[0] = m_listener.start( m_args );
+                            // This is user code, so don't trust it.
+                            try
+                            {
+                                resultF[0] = m_listener.start( m_args );
+                            }
+                            catch ( Throwable t )
+                            {
+                                tF[0] = t;
+                            }
                         }
-                        catch ( Throwable t )
+                        finally
                         {
-                            tF[0] = t;
-                        }
-                    }
-                    finally
-                    {
-                        // Now that we are back, handle the results.
-                        if ( tF[0] != null )
-                        {
-                            m_outError.println( "Error in WrapperListener.start callback.  " + tF[0] );
-                            tF[0].printStackTrace( m_outError );
-                            // Kill the JVM, but don't tell the wrapper that we want to stop.
-                            //  This may be a problem with this instantiation only.
-                            privilegedStopInner( 1 );
-                            // Won't make it here.
-                            return;
-                        }
-                        
-                        if ( m_debug )
-                        {
-                            m_outDebug.println( "returned from WrapperListener.start()" );
-                        }
-                        if ( resultF[0] != null )
-                        {
-                            int exitCode = resultF[0].intValue();
                             if ( m_debug )
                             {
-                                m_outDebug.println(
-                                    "WrapperListener.start() returned an exit code of " + exitCode + "." );
+                               m_outDebug.println( "WrapperListener.start runner thread stopped." );
                             }
-                            
-                            // Signal the native code.
-                            WrapperManager.stop( exitCode );
-                            // Won't make it here.
-                            return;
-                        }
-                        startCompleted();
-                        
-                        if ( m_debug )
-                        {
-                           m_outDebug.println( "WrapperListener.start runner thread stopped." );
                         }
                     }
-                }
-            };
-            startRunner.setDaemon( false );
-            startRunner.start();
-            
-            // Crank the priority back up.
-            Thread.currentThread().setPriority( oldPriority );
-            
-            if ( block )
-            {
+                };
+                startRunner.setDaemon( false );
+                startRunner.start();
+                
                 // Wait for the start runner to complete.
                 if ( m_debug )
                 {
@@ -3295,7 +3014,65 @@ public final class WrapperManager
                     }
                 }
             }
+            else
+            {
+                // Start in line.
+                // This is user code, so don't trust it.
+                try
+                {
+                    resultF[0] = m_listener.start( m_args );
+                }
+                catch ( Throwable t )
+                {
+                    tF[0] = t;
+                }
+            }
+            
+            // Now that we are back in the main thread, handle the results.
+            if ( tF[0] != null )
+            {
+                m_outError.println( "Error in WrapperListener.start callback.  " + tF[0] );
+                tF[0].printStackTrace( m_outError );
+                // Kill the JVM, but don't tell the wrapper that we want to stop.
+                //  This may be a problem with this instantiation only.
+                privilegedStopInner( 1 );
+                // Won't make it here.
+                return;
+            }
+            
+            if ( m_debug )
+            {
+                m_outDebug.println( "returned from WrapperListener.start()" );
+            }
+            if ( resultF[0] != null )
+            {
+                int exitCode = resultF[0].intValue();
+                if ( m_debug )
+                {
+                    m_outDebug.println(
+                        "WrapperListener.start() returned an exit code of " + exitCode + "." );
+                }
+                
+                // Signal the native code.
+                stop( exitCode );
+                // Won't make it here.
+                return;
+            }
         }
+        m_startedTicks = getTicks();
+        
+        // Let the startup thread die since the application has been started.
+        m_startupRunner = null;
+        
+        // Check the SecurityManager here as it is possible that it was set in the
+        //  listener's start method.
+        checkSecurityManager();
+        
+        // Crank the priority back up.
+        Thread.currentThread().setPriority( oldPriority );
+        
+        // Signal that the application has started.
+        signalStarted();
     }
     
     private static void shutdownJVM( int exitCode )
@@ -3306,29 +3083,33 @@ public final class WrapperManager
                 "shutdownJVM(" + exitCode + ") Thread:" + Thread.currentThread().getName() );
         }
         
-        // Make sure that any shutdown locks are released.
-        waitForShutdownLocks();
-        
-        // Signal that the application has stopped and the JVM is about to shutdown.
-        signalStopped( exitCode );
-        
-        // Dispose the wrapper.
-        dispose();
-        
-        m_shutdownJVMComplete = true;
-        
         // Do not call System.exit if this is the ShutdownHook
         if ( Thread.currentThread() == m_hook )
         {
+            // Signal that the application has stopped and the JVM is about to shutdown.
+            signalStopped( exitCode );
+            
+            // Dispose the wrapper.  (If the hook runs, it will do this.)
+            dispose();
+            
             // This is the shutdown hook, so fall through because things are
             //  already shutting down.
+            
+            m_shutdownJVMComplete = true;
         }
         else
         {
+            // Signal that the application has stopped and the JVM is about to shutdown.
+            signalStopped( exitCode );
+            
+            // Dispose the wrapper.  (If the hook runs, it will do this.)
+            dispose();
+            
             if ( m_debug )
             {
                 m_outDebug.println( "calling System.exit(" + exitCode + ")" );
             }
+            m_shutdownJVMComplete = true;
             safeSystemExit( exitCode );
         }
     }
@@ -3508,10 +3289,9 @@ public final class WrapperManager
             }
         }
         
-        // Only stop the listener if the app has been asked to start.  Does not need to have actually started.
+        // Only stop the listener if the app has been started.
         int code = exitCode;
-        
-        if ( ( m_listenerForceStop && m_starting ) || m_started )
+        if ( m_started )
         {
             // Set the thread priority back to normal so that any spawned threads
             //  will use the normal priority
@@ -4262,7 +4042,7 @@ public final class WrapperManager
                         switch( code )
                         {
                         case WRAPPER_MSG_START:
-                            startInner( false );
+                            startInner();
                             break;
                             
                         case WRAPPER_MSG_STOP:
@@ -4581,7 +4361,7 @@ public final class WrapperManager
             }
             catch ( Throwable t )
             {
-                if ( !isShuttingDown() )
+                if ( !m_shuttingDown )
                 {
                     // Show a stack trace here because this is fairly critical
                     m_outError.println( m_error.format( "SERVER_DAEMON_DIED" ) );
@@ -4653,42 +4433,6 @@ public final class WrapperManager
         public int getTickOffset()
         {
             return m_tickOffset;
-        }
-    }
-    
-    /**
-     * When the JVM is being controlled by the Wrapper, stdin can not be used
-     *  as it is undefined.  This class makes it possible to provide the user
-     *  application with a descriptive error message if System.in is accessed.
-     */
-    private static class WrapperInputStream
-        extends InputStream
-    {
-        /**
-         * This method will always throw an IOException as the read method is
-         *  not valid.
-         */
-        public int read()
-            throws IOException
-        {
-            m_out.println( "WARNING - System.in has been disabled by the wrapper.disable_console_input property.  "
-                + "Calls will block indefinitely." );
-            
-            // Go into a loop that will never return.
-            while ( true )
-            {
-                synchronized( this )
-                {
-                    try
-                    {
-                        this.wait();
-                    }
-                    catch ( InterruptedException e )
-                    {
-                        // Ignore.
-                    }
-                }
-            }
         }
     }
 }

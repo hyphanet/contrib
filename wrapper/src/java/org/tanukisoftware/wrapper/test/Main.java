@@ -1,7 +1,7 @@
 package org.tanukisoftware.wrapper.test;
 
 /*
- * Copyright (c) 1999, 2009 Tanuki Software, Ltd.
+ * Copyright (c) 1999, 2008 Tanuki Software, Inc.
  * http://www.tanukisoftware.com
  * All rights reserved.
  *
@@ -43,8 +43,6 @@ import java.awt.ScrollPane;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 
 import org.tanukisoftware.wrapper.WrapperActionServer;
 import org.tanukisoftware.wrapper.WrapperManager;
@@ -82,7 +80,7 @@ public class Main
     private Main() {
     }
     
-    private class MainFrame extends Frame implements ActionListener, WindowListener
+    private class MainFrame extends Frame implements ActionListener
     {
         /**
          * Serial Version UID.
@@ -162,9 +160,6 @@ public class Main
             buildCommand( panel, gridBag, c, "Simulate JVM Hang", "appear_hung",
                 "Makes the JVM appear to be hung as viewed from the Wrapper, it will be killed and restarted." );
             
-            buildCommand( panel, gridBag, c, "Ignore Control Events", "ignore_events",
-                "Makes this application ignore control events.  It will not shutdown in response to CTRL-C.  The Wrapper will still respond." );
-            
             buildCommand( panel, gridBag, c, "Request Thread Dump", "dump",
                 "Calls WrapperManager.requestThreadDump() to cause the JVM to dump its current thread state." );
             
@@ -231,8 +226,6 @@ public class Main
             buildCommand( panel, gridBag, c, "Is Professional?", "is_professional", "Prints true if this is a Professional Edition." );
             
             buildCommand( panel, gridBag, c, "Is Standard?", "is_standard", "Prints true if this is a Standard Edition." );
-            
-            addWindowListener( this );
         }
         
         private void buildCommand( Container container,
@@ -270,9 +263,6 @@ public class Main
             container.add( desc );
         }
         
-        /**************************************************************************
-         * ActionListener Methods
-         *************************************************************************/
         public void actionPerformed( ActionEvent event )
         {
             String action = event.getActionCommand();
@@ -304,38 +294,6 @@ public class Main
             setServiceName( m_serviceName.getText() );
             
             Main.this.doAction( action );
-        }
-        
-        /**************************************************************************
-         * WindowListener Methods
-         *************************************************************************/
-        public void windowOpened( WindowEvent e )
-        {
-        }
-        
-        public void windowClosing( WindowEvent e )
-        {
-            WrapperManager.stopAndReturn( 0 );
-        }
-        
-        public void windowClosed( WindowEvent e )
-        {
-        }
-        
-        public void windowIconified( WindowEvent e )
-        {
-        }
-        
-        public void windowDeiconified( WindowEvent e )
-        {
-        }
-        
-        public void windowActivated( WindowEvent e )
-        {
-        }
-        
-        public void windowDeactivated( WindowEvent e )
-        {
         }
     }
     
@@ -444,16 +402,14 @@ public class Main
         System.out.println( "TestWrapper: controlEvent(" + event + ")" );
         
         if ( ( event == WrapperManager.WRAPPER_CTRL_LOGOFF_EVENT )
-            && ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
+        	&& ( WrapperManager.isLaunchedAsService() || WrapperManager.isIgnoreUserLogoffs() ) )
         {
             System.out.println( "TestWrapper:   Ignoring logoff event" );
             // Ignore
         }
         else
         {
-            if ( !ignoreControlEvents() ) {
-                WrapperManager.stop( 0 );
-            }
+            WrapperManager.stop( 0 );
         }
     }
     

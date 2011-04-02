@@ -5,16 +5,12 @@
 #  from the following line:
 ##include.debug
 #include ../conf/wrapper-license.conf
-#include ../conf/wrapper-license-%WRAPPER_HOST_NAME%.conf
 
 #********************************************************************
 # Wrapper Java Properties
 #********************************************************************
 # Java Application
 wrapper.java.command=java
-
-# Tell the Wrapper to log the full generated Java command line.
-#wrapper.java.command.loglevel=INFO
 
 # Java Main class.  This class must implement the WrapperListener interface
 #  or guarantee that the WrapperManager class is initialized.  Helper
@@ -28,9 +24,6 @@ wrapper.java.classpath.1=../lib/wrapper.jar
 
 # Java Library Path (location of Wrapper.DLL or libwrapper.so)
 wrapper.java.library.path.1=../lib
-
-# Java Bits.  On applicable platforms, tells the JVM to run in 32 or 64-bit mode.
-wrapper.java.additional.auto_bits=TRUE
 
 # Java Additional Parameters
 #wrapper.java.additional.1=
@@ -47,9 +40,6 @@ wrapper.app.parameter.1=<YourMainClass>
 #********************************************************************
 # Wrapper Logging Properties
 #********************************************************************
-# Enables Debug output from the Wrapper.
-# wrapper.debug=TRUE
-
 # Format of output for the console.  (See docs for formats)
 wrapper.console.format=PM
 
