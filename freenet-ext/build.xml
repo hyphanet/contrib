@@ -309,12 +309,12 @@
 		<sequential>
 			<lib-report lib="@{lib}"/>
 			<lib-sequential lib="@{lib}">
+				<basename property="extlib.@{lib}.filename" file="${extlib.@{lib}.location}"/>
 				<if>
 					<available file="${pkg.base}/@{dest}" type="dir"/>
 					<else>
 						<delete dir="${tmp}"/>
 						<mkdir dir="${tmp}"/>
-						<basename property="extlib.@{lib}.filename" file="${extlib.@{lib}.location}"/>
 						<untar dest="${tmp}" compression="gzip">
 							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar.gz"/></fileset>
 						</untar>
@@ -340,29 +340,66 @@
 		<sequential>
 			<lib-sequential lib="@{lib}">
 				<basename property="extlib.@{lib}.filename" file="${extlib.@{lib}.location}"/>
-				<condition property="extlib.@{lib}.available" else="false">
-					<and>
-						<available file="${lib}/${extlib.@{lib}.filename}"/>
-						<checksum file="${lib}/${extlib.@{lib}.filename}" algorithm="SHA-256"
-						  property="${extlib.@{lib}.sum-sha256}" />
-					</and>
-				</condition>
-				<if>
-					<istrue value="${extlib.@{lib}.available}"/>
-					<else>
-						<delete dir="${tmp}"/>
-						<mkdir dir="${tmp}"/>
-						<get src="${extlib.@{lib}.location}" dest="${tmp}/${extlib.@{lib}.filename}"
-						  verbose="true" usetimestamp="true"/>
-						<checksum file="${tmp}/${extlib.@{lib}.filename}" algorithm="SHA-256"
-						  property="${extlib.@{lib}.sum-sha256}" verifyProperty="extlib.@{lib}.sum-sha256.remote" />
-						<fail unless="${extlib.@{lib}.sum-sha256.remote}"
-						  message="lib-getsrc: ${extlib.@{lib}.filename} checksum mismatch"/>
-						<move file="${tmp}/${extlib.@{lib}.filename}" todir="${lib}"/>
-						<delete dir="${tmp}"/>
-					</else>
-				</if>
+				<for list="${extlib.use-mirrors}" param="mirror">
+					<sequential>
+						<nested-lib-getsrc-from lib="@{lib}" mirror="@{mirror}" />
+					</sequential>
+				</for>
+				<nested-lib-getsrc-from lib="@{lib}" mirror="upstream" location="${extlib.@{lib}.location}" />
+				<nested-lib-checksrc lib="@{lib}"/>
+				<fail unless="${extlib.@{lib}.available}"
+				  message="lib-getsrc: could not get ${extlib.@{lib}.filename} from any of the mirrors, or upstream."/>
 			</lib-sequential>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="nested-lib-checksrc">
+		<!-- check if a lib's source code is available.
+		  this macro does not have a lib-sequential wrapper, so should only
+		  be accessed from inside macros that do have that wrapper -->
+		<attribute name="lib" />
+		<sequential>
+			<condition property="extlib.@{lib}.available">
+				<and>
+					<available file="${lib}/${extlib.@{lib}.filename}"/>
+					<checksum file="${lib}/${extlib.@{lib}.filename}" algorithm="SHA-256"
+					  property="${extlib.@{lib}.sum-sha256}" />
+				</and>
+			</condition>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="nested-lib-getsrc-from">
+		<!-- get a lib's source code from a given location and mirror.
+		  this macro does not have a lib-sequential wrapper, so should only
+		  be accessed from inside macros that do have that wrapper -->
+		<attribute name="lib" />
+		<attribute name="mirror" />
+		<attribute name="location" default="${extlib.mirror.@{mirror}}/${extlib.@{lib}.filename}" />
+		<sequential>
+			<nested-lib-checksrc lib="@{lib}"/>
+			<if>
+				<istrue value="${extlib.@{lib}.available}"/>
+				<else>
+					<delete dir="${tmp}"/>
+					<mkdir dir="${tmp}"/>
+					<get src="@{location}" dest="${tmp}/${extlib.@{lib}.filename}"
+					  verbose="true" usetimestamp="true" ignoreerrors="true"/>
+					<condition property="extlib.@{lib}.available.@{mirror}">
+						<and>
+							<available file="${tmp}/${extlib.@{lib}.filename}"/>
+							<checksum file="${tmp}/${extlib.@{lib}.filename}" algorithm="SHA-256"
+							  property="${extlib.@{lib}.sum-sha256}"/>
+						</and>
+					</condition>
+					<if>
+						<istrue value="${extlib.@{lib}.available.@{mirror}}"/>
+						<then><move file="${tmp}/${extlib.@{lib}.filename}" todir="${lib}"/></then>
+						<else><echo message="failed checksum: @{location}"/></else>
+					</if>
+					<delete dir="${tmp}"/>
+				</else>
+			</if>
 		</sequential>
 	</macrodef>
 
