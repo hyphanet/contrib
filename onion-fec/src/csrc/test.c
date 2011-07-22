@@ -54,7 +54,7 @@ typedef unsigned short u_short ;
 	  if (t1 < t) t = 256000000 + t1 - t ; \
 	  else t = t1 - t ; \
 	  if (t == 0) t = 1 ;}
-	
+
 u_long ticks[10];	/* vars for timekeeping */
 
 void *
@@ -71,11 +71,7 @@ int
 pr_matrix(void *m1, int rows, int cols, char *s)
 {
     int r, c;
-#if GF_BITS >8
-    u_char *m = m1 ;
-#else
-    u_short *m = m1 ;
-#endif
+    gf *m = m1 ;
     fprintf(stderr,"%s\n", s);
     for (r=0; r<rows; r++) {
 	for (c=0; c<cols; c++)
@@ -102,7 +98,7 @@ test_decode(void *code, int k, int index[], int sz, char *s)
     int item, i ;
 
     static int prev_k = 0, prev_sz = 0;
-    static u_char **d_original = NULL, **d_src = NULL ;
+    static gf **d_original = NULL, **d_src = NULL ;
 
     if (sz < 1 || sz > 8192) {
 	fprintf(stderr, "test_decode: size %d invalid, must be 1..8K\n",
@@ -129,12 +125,12 @@ test_decode(void *code, int k, int index[], int sz, char *s)
     prev_k = k ;
     prev_sz = sz ;
     if (d_original == NULL) {
-	d_original = my_malloc(k * sizeof(void *), "d_original ptr");
-	d_src = my_malloc(k * sizeof(void *), "d_src ptr");
+	d_original = my_malloc(k * sizeof(gf *), "d_original ptr");
+	d_src = my_malloc(k * sizeof(gf *), "d_src ptr");
 
 	for (i = 0 ; i < k ; i++ ) {
-	    d_original[i] = my_malloc(sz, "d_original data");
-	    d_src[i] = my_malloc(sz, "d_src data");
+	    d_original[i] = my_malloc(sz * sizeof(gf), "d_original data");
+	    d_src[i] = my_malloc(sz * sizeof(gf), "d_src data");
 	}
 	/*
 	 * build sample data
@@ -228,7 +224,7 @@ main(int argc, char *argv[])
 	ixs = my_malloc(kk * sizeof(int), "ixs" );
 
 	for (i=0; i<kk; i++) ixs[i] = kk - i ;
-	sprintf(buf, "kk=%d, kk - i", kk); 
+	sprintf(buf, "kk=%d, kk - i", kk);
 	test_decode(code, kk, ixs, SZ, buf);
 
 	for (i=0; i<kk; i++) ixs[i] = i ;
