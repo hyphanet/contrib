@@ -8,48 +8,45 @@
 # machines.
 #
 
-CC?=gcc
+CC ?= gcc
 # COPT= -O9 -funroll-loops
-COPT= -O1 -funroll-loops -fno-strict-aliasing
-CFLAGS?=$(COPT) -Wall -fPIC -I$(JAVA_HOME)/include #-m32 #for 32-bit cross-compile
-SRCS= fec.c Makefile test.c
-DOCS= README fec.3
-ALLSRCS= $(SRCS) $(DOCS) fec.h
-LDFLAGS?= --add-stdcall-alias #-m32 #for 32-bit cross-compile
+COPT = -O1 -funroll-loops -fno-strict-aliasing
+CFLAGS ?= $(COPT) -Wall -fPIC -I$(JAVA_HOME)/include #-m32 #for 32-bit cross-compile
+LDFLAGS ?= #-m32 #for 32-bit cross-compile
+CLASSPATH ?= ../../classes
+SRCS = fec.c fec.h test.c fec-jinterf.c Makefile
+DOCS = README fec.3
+ALLSRCS = $(SRCS) $(DOCS) fec.h
 
-fec: libfec8.so libfec16.so test.c
-	$(CC) $(CFLAGS) -DGF_BITS=8 -o fec fec8.o test.c
+.PHONY: clean clean-all all
 
-libfec8.so: fec8.o fec8-jinterf.o
-	$(CC) $(LDFLAGS) -shared fec8-jinterf.o fec8.o -o libfec8.so
+all: libfec8.so libfec16.so
 
-fec8-jinterf.o: fec-jinterf.c
-	$(CC) $(CFLAGS) -DGF_BITS=8 -c \
-		-I$(JAVA_HOME)/include/linux fec-jinterf.c \
-		-o fec8-jinterf.o
+all-test: fec8test fec16test
 
-fec8.o: fec.h fec8.S
-	$(CC) $(CFLAGS) -DGF_BITS=8 -c -o fec8.o fec8.S
+libfec%.so: fec%.o fec%-jinterf.o
+	$(CC) $^ -o $@ $(LDFLAGS) -shared
 
-fec8.S: fec.c Makefile
-	$(CC) $(CFLAGS) -DGF_BITS=8 -S -o fec8.S fec.c
+fec%-jinterf.o: fec-jinterf.c com_onionnetworks_fec_Native%Code.h
+	$(CC) $< -o $@ -c $(CFLAGS) -DGF_BITS=$* -I$(JAVA_HOME)/include/linux
 
-libfec16.so: fec16.o fec16-jinterf.o
-	$(CC) $(LDFLAGS) -shared fec16-jinterf.o fec16.o -o libfec16.so
+com_onionnetworks_fec_Native%Code.h: $(CLASSPATH)/com/onionnetworks/fec/Native%Code.class
+	javah -o $@ -classpath $(CLASSPATH) com.onionnetworks.fec.Native$*Code
 
-fec16-jinterf.o: fec-jinterf.c
-	$(CC) $(CFLAGS) -DGF_BITS=16 -c \
-		-I$(JAVA_HOME)/include/linux fec-jinterf.c \
-		-o fec16-jinterf.o
+fec%test: fec%.o test.c
+	$(CC) $^ -o $@ $(CFLAGS) -DGF_BITS=$*
 
-fec16.o: fec.h fec16.S
-	$(CC) $(CFLAGS) -DGF_BITS=16 -c -o fec16.o fec16.S
+fec%.o: fec%.S fec.h
+	$(CC) $< -o $@ -c $(CFLAGS) -DGF_BITS=$*
 
-fec16.S: fec.c Makefile
-	$(CC) $(CFLAGS) -DGF_BITS=16 -S -o fec16.S fec.c
+fec%.S: fec.c Makefile
+	$(CC) $< -o $@ -S $(CFLAGS) -DGF_BITS=$*
 
 clean:
-	- rm -f *.o *.S fec *.so
+	- rm -f *.o *.S *.so fec*test
+
+clean-all: clean
+	- rm -f com_*.h
 
 tgz: $(ALLSRCS)
-	tar cvzf vdm`date +%y%m%d`.tgz $(ALLSRCS)
+	tar -cvz -f vdm`date +%y%m%d`.tgz $(ALLSRCS)

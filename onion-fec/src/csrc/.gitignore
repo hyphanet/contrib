@@ -1,5 +1,5 @@
-*.o
-*.so
-*.dll
-*.S
-fec
+/*.o
+/*.so
+/*.dll
+/*.S
+/fec*test
