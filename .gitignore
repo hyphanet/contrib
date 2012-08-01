@@ -1,32 +1,34 @@
-freenet-ext/build/
-freenet-ext/dist/
-freenet-ext/lib/
-freenet-ext/override.properties
+/freenet-ext/build/
+/freenet-ext/dist/
+/freenet-ext/lib/
+/freenet-ext/override.properties
 
 ## local packages
 
-onion-common/classes/
-onion-common/lib/
-onion-common/tools/classes/
-onion-fec/classes/
-onion-fec/lib/
+/onion-common/classes/
+/onion-common/javadoc/
+/onion-common/lib/
+/onion-common/tools/classes/
+/onion-common/tools/javadoc/
+/onion-fec/classes/
+/onion-fec/lib/
 
 ## external packages
 
-bdb-je/
-commons-compress/
-wrapper/
+/bdb-je/
+/commons-compress/
+/wrapper/
 
-lzma/
-lzmajio/
-mantissa/
-bitcollider-core/
+/lzma/
+/lzmajio/
+/mantissa/
+/bitcollider-core/
 
 # db4o is "special". not in a good way.
-db4o.orig/
-db4o/build/
-db4o/build-db4oj/
-db4o/build-db4ojdk1.2/
-db4o/build-db4ojdk5/
-db4o/src/
-db4o/db4o.jar
+/db4o.orig/
+/db4o/build/
+/db4o/build-db4oj/
+/db4o/build-db4ojdk1.2/
+/db4o/build-db4ojdk5/
+/db4o/src/
+/db4o/db4o.jar
