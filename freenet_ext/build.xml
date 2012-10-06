@@ -9,7 +9,9 @@
 
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="strip-modules" value="strip-modules@5ca910ce"/>
-	
+
+	<property name="tmp" value="tmp"/>
+
 	<!-- set version string based on git-describe -->
 	<exec executable="git" failifexecutionfails="false"
 		errorProperty="git.errror" outputproperty="git.describe" resultproperty="git.result">
@@ -30,12 +32,15 @@
 		<mkdir dir="${build}/freenet/node/"/>
 
 		<!-- Update the Version file -->
-		<replace file="ExtVersion.java">
+		<mkdir dir="${tmp}"/>
+		<copy file="ExtVersion.java" tofile="${tmp}/ExtVersion.java" overwrite="true"/>
+		<replace file="${tmp}/ExtVersion.java">
 			<replacefilter token="@custom@" value="${git.revision}"/>
 		</replace>
-		<javac srcdir="." destdir="${build}" optimize="on" source="${javac.target.version}">
+		<javac srcdir="${tmp}" destdir="${build}" optimize="on" source="${javac.target.version}">
 			<include name="ExtVersion.java"/>
 		</javac>
+		<delete dir="${tmp}"/>
 	</target>
 
 	<target name="fec-common" depends="init" description="build required classes for FEC">
