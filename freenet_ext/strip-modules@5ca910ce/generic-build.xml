@@ -5,6 +5,7 @@
 	<property name="class" value="class"/>
 	<property name="src" value="src"/>
 	<property name="lib" value="lib"/>
+	<property name="javac.debug" value="off"/>
 	<fail unless="jar" message="Java property &quot;jar&quot; not set!"/>
 
 	<target name="init">
@@ -12,7 +13,7 @@
 	</target>
 
 	<target name="build" depends="init">
-		<javac srcdir="${src}" destdir="${class}" optimize="on"/>
+		<javac srcdir="${src}" destdir="${class}" debug="${javac.debug}" optimize="on"/>
 	</target>
 
 	<target name="jar" depends="build">

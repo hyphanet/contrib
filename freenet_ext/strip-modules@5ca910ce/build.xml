@@ -57,7 +57,13 @@
 
 	<target name="package-lib" depends="prepare-libsrc" description="build external packages">
 		<lib-sequential lib="commons-compress">
-			<maven basedir="${pkg.base}/commons-compress" goal="package"/>
+			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
+			  dir="${pkg.base}/commons-compress" target="jar">
+				<property name="src" value="java"/>
+				<property name="jar" value="commons-compress.jar"/>
+				<property name="ant.build.javac.source" value="1.4"/>
+				<property name="javac.debug" value="on"/>
+			</ant>
 		</lib-sequential>
 		<lib-sequential lib="bitcollider-core">
 			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
@@ -69,7 +75,10 @@
 
 	<target name="clean-lib" depends="prepare-libsrc" description="clean build products of external packages">
 		<lib-sequential lib="commons-compress">
-			<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
+			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
+			  dir="${pkg.base}/commons-compress" target="clean">
+				<property name="jar" value="commons-compress.jar"/>
+			</ant>
 		</lib-sequential>
 		<lib-sequential lib="bitcollider-core">
 			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
