@@ -42,7 +42,7 @@
 		<mkdir dir="${main.dst}"/>
 	</target>
 
-	<target name="package" depends="package-lib" description="build standard binary packages">
+	<target name="package" depends="init, package-lib" description="build standard binary packages">
 		<lib-copy lib="commons-compress"/>
 		<lib-copy lib="bitcollider-core"/>
 	</target>
