@@ -9,7 +9,7 @@
 
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="strip-modules" value="strip-modules@5ca910ce"/>
-	
+
 	<!-- set version string based on git-describe -->
 	<exec executable="git" failifexecutionfails="false"
 		errorProperty="git.errror" outputproperty="git.describe" resultproperty="git.result">
@@ -30,10 +30,11 @@
 		<mkdir dir="${build}/freenet/node/"/>
 
 		<!-- Update the Version file -->
-		<replace file="ExtVersion.java">
+		<copy file="ExtVersion.java" tofile="${build}/ExtVersion.java" overwrite="true"/>
+		<replace file="${build}/ExtVersion.java">
 			<replacefilter token="@custom@" value="${git.revision}"/>
 		</replace>
-		<javac srcdir="." destdir="${build}" optimize="on" source="${javac.target.version}">
+		<javac srcdir="${build}" destdir="${build}" optimize="on" source="${javac.target.version}">
 			<include name="ExtVersion.java"/>
 		</javac>
 	</target>
