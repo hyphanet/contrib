@@ -161,7 +161,6 @@
 		<jar jarfile="${jar.location}" basedir="${build}" includes="**" update="yes" duplicate="fail" level="9">
 			<zipfileset src="../fec/common/lib/onion-common.jar"/>
 			<zipfileset src="../wrapper/lib/wrapper.jar"/>
-			<zipfileset src="../bouncycastle/bcprov-jdk15on-147.jar"/>
 			<zipgroupfileset dir="${strip-modules}/dist"/>
 		</jar>
 	</target>
