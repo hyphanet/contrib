@@ -1,5 +1,7 @@
 package com.onionnetworks.util;
 
+//~--- JDK imports ------------------------------------------------------------
+
 import java.util.EventListener;
 
 /**
@@ -8,9 +10,7 @@ import java.util.EventListener;
  * @author Justin F. Chapweske
  */
 public interface ExceptionHandler extends EventListener {
-
     public static final String HANDLE_EXCEPTION = "handleException";
-    
     public static final String[] EVENTS = new String[] { HANDLE_EXCEPTION };
 
     public void handleException(ExceptionEvent ev);

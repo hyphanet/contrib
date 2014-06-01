@@ -7,17 +7,13 @@ package com.onionnetworks.util;
  * @author Justin F. Chapweske
  */
 public class FileIntegrityImpl implements FileIntegrity {
-
     private String algo;
     private Buffer fileHash;
     private Buffer[] blockHashes;
     private int blockSize, blockCount;
     private long fileSize;
-    
 
-    public FileIntegrityImpl(String algorithm, Buffer fileHash, 
-                             Buffer[] blockHashes, long fileSize, 
-                             int blockSize) {
+    public FileIntegrityImpl(String algorithm, Buffer fileHash, Buffer[] blockHashes, long fileSize, int blockSize) {
         if (algorithm == null) {
             throw new NullPointerException("algorithm is null");
         } else if (fileHash == null) {
@@ -29,12 +25,14 @@ public class FileIntegrityImpl implements FileIntegrity {
         } else if (blockSize < 0) {
             throw new IllegalArgumentException("blockSize < 0");
         }
+
         this.algo = algorithm;
         this.fileHash = fileHash;
         this.blockHashes = blockHashes;
         this.fileSize = fileSize;
         this.blockSize = blockSize;
-        this.blockCount = Util.divideCeil(fileSize,blockSize);
+        this.blockCount = Util.divideCeil(fileSize, blockSize);
+
         if (blockHashes.length != blockCount) {
             throw new IllegalArgumentException("Incorrect block hash count");
         }
@@ -64,7 +62,7 @@ public class FileIntegrityImpl implements FileIntegrity {
     public long getFileSize() {
         return fileSize;
     }
-        
+
     /**
      * Returns the number of blocks that make up the file.  This value will
      * be equal to ceil(fileSize/blockSize).
@@ -74,15 +72,15 @@ public class FileIntegrityImpl implements FileIntegrity {
     public int getBlockCount() {
         return blockCount;
     }
- 
 
     /**
      * @return the hash of the specified block.
      */
     public Buffer getBlockHash(int blockNum) {
-        if (blockNum < 0 || blockNum >= blockCount) {
-            throw new IllegalArgumentException("Invalide block #"+blockNum);
+        if ((blockNum < 0) || (blockNum >= blockCount)) {
+            throw new IllegalArgumentException("Invalide block #" + blockNum);
         }
+
         return blockHashes[blockNum];
     }
 
