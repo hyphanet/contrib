@@ -1,7 +1,9 @@
 package com.onionnetworks.fec;
 
-import com.onionnetworks.util.Util;
+//~--- non-JDK imports --------------------------------------------------------
+
 import com.onionnetworks.util.Buffer;
+import com.onionnetworks.util.Util;
 
 /**
  *
@@ -27,9 +29,8 @@ import com.onionnetworks.util.Buffer;
  * @author Justin F. Chapweske (justin@chapweske.com)
  */
 public abstract class FECCode {
+    protected int k, n;
 
-    protected int k,n;
-    
     /**
      * Construct a new FECCode given <code>k</code> and <code>n</code>
      *
@@ -58,22 +59,21 @@ public abstract class FECCode {
      *
      * @param srcOff An array of integers which specifies the offset of each
      * each packet within its associated byte[].
-     * 
+     *
      * @param repair Much like src, variable points to a number of buffers
      * to which the encoded repair packets will be written.  This array should
      * be the same length as repairOff and index.
-     * 
+     *
      * @param repairOff This is the repair analog to srcOff.
      *
      * @param index This int[] specifies the indexes of the packets to be
      * encoded and written to <code>repair</code>.  These indexes must be
      * between 0..n (should probably be k..n, because encoding < k is a NOP)
-     * 
+     *
      * @param packetLength the packetLength in bytes.  All of the buffers
      * in src and repair are assumed to be this long.
      */
-    protected abstract void encode(byte[][] src, int[] srcOff, byte[][] repair,
-                                   int[] repairOff, int[] index, 
+    protected abstract void encode(byte[][] src, int[] srcOff, byte[][] repair, int[] repairOff, int[] index,
                                    int packetLength);
 
     /**
@@ -82,7 +82,7 @@ public abstract class FECCode {
      * original source packets (index < k) are positioned so that their
      * index within the byte[][] is the same as their packet index.  If the
      * <code>shuffled</code> flag is set to true then it is assumed that
-     * the packets are already in the proper order.  If not then they will 
+     * the packets are already in the proper order.  If not then they will
      * have the references of the byte[]'s shuffled within the byte[][].  No
      * data will be copied, only references swapped.  This means that if the
      * byte[][] is wrapping an underlying byte[] then the shuffling proceedure
@@ -99,16 +99,14 @@ public abstract class FECCode {
      *
      * @param pktsOff An array of integers which specifies the offset of each
      * each packet within its associated byte[].
-     * 
+     *
      * @param index This int[] specifies the indexes of the packets to be
      * decoded.  These indexes must be between 0..n
-     * 
+     *
      * @param packetLength the packetLength in bytes.  All of the buffers
      * in pkts are assumed to be this long.
      */
-    protected abstract void decode(byte[][] pkts, int[] pktsOff,
-                                   int[] index, int packetLength, 
-                                   boolean shuffled);
+    protected abstract void decode(byte[][] pkts, int[] pktsOff, int[] index, int packetLength, boolean shuffled);
 
     /**
      * This method takes an array of source packets and generates a number
@@ -125,56 +123,59 @@ public abstract class FECCode {
      * @param repair Much like src, variable points to a number of Buffers
      * to which the encoded repair packets will be written.  This array should
      * be the same length as index.
-     * 
+     *
      * @param index This int[] specifies the indexes of the packets to be
      * encoded and written to <code>repair</code>.  These indexes must be
      * between 0..n (should probably be k..n, because encoding < k is a NOP)
-     * 
+     *
      */
     public void encode(Buffer[] src, Buffer[] repair, int[] index) {
         byte[][] srcBufs = new byte[src.length][];
         int[] srcOffs = new int[src.length];
         byte[][] repairBufs = new byte[repair.length][];
         int[] repairOffs = new int[repair.length];
-        for (int i=0;i<srcBufs.length;i++) {
+
+        for (int i = 0; i < srcBufs.length; i++) {
             srcBufs[i] = src[i].b;
             srcOffs[i] = src[i].off;
         }
-        for (int i=0;i<repairBufs.length;i++) {
+
+        for (int i = 0; i < repairBufs.length; i++) {
             repairBufs[i] = repair[i].b;
             repairOffs[i] = repair[i].off;
         }
 
-        encode(srcBufs,srcOffs,repairBufs,repairOffs,index,src[0].len);
+        encode(srcBufs, srcOffs, repairBufs, repairOffs, index, src[0].len);
     }
 
     /*
-    protected void checkArguments() {
-        if (index < 0 || index >= n) {
-            throw new IllegalArgumentException("Invalid index "+index+
-					       " (max "+(n-1)+")");
-	}
-        if (buf.len != repair.len) {
-            throw new IllegalArgumentException
-                ("Source buffer and output buffer not same length");
-        }
-
-        if (pkts.length != k || index.length != k) {
-            throw new IllegalArgumentException("Must be exactly k packets "+
-                                               "and index entries.");
-        }
-        }*/
+     * protected void checkArguments() {
+     *   if (index < 0 || index >= n) {
+     *       throw new IllegalArgumentException("Invalid index "+index+
+     *                                          " (max "+(n-1)+")");
+     *   }
+     *   if (buf.len != repair.len) {
+     *       throw new IllegalArgumentException
+     *           ("Source buffer and output buffer not same length");
+     *   }
+     *
+     *   if (pkts.length != k || index.length != k) {
+     *       throw new IllegalArgumentException("Must be exactly k packets "+
+     *                                          "and index entries.");
+     *   }
+     *   }
+     */
 
     /**
      * This method takes an array of encoded packets and decodes them.  Before
      * the packets are decoded, they are shuffled so that packets that are
      * original source packets (index < k) are positioned so that their
-     * index within the byte[][] is the same as their packet index. 
+     * index within the byte[][] is the same as their packet index.
      *
-     * We shuffle the packets using the copy mechanism to allow API users to 
+     * We shuffle the packets using the copy mechanism to allow API users to
      * be guarenteed that the Buffer[] references will not be shuffled around.
-     * This allows the Buffer[] to wrap an underlying byte[], and once 
-     * decoding is complete the entire block will be in the proper order 
+     * This allows the Buffer[] to wrap an underlying byte[], and once
+     * decoding is complete the entire block will be in the proper order
      * in the underlying byte[].  If the packets are already in the proper
      * position then no copying will take place.
      *
@@ -186,23 +187,26 @@ public abstract class FECCode {
      *
      * @param index This int[] specifies the indexes of the packets to be
      * decoded.  These indexes must be between 0..n
-     * 
+     *
      */
     public void decode(Buffer[] pkts, int[] index) {
+
         // Must pre-shuffle so that no future shuffles bring the byte[]'s
-        // out of sync with the Buffer[]'s.  We use copyShuffle so that 
+        // out of sync with the Buffer[]'s.  We use copyShuffle so that
         // the Buffer[]'s don't have their references shuffled around and
         // therefore we can have the Buffer[]'s wrapping one large byte[]
         // that will be decoded with all of the data in order in that block.
-        copyShuffle(pkts,index,k);
+        copyShuffle(pkts, index, k);
 
         byte[][] bufs = new byte[pkts.length][];
         int[] offs = new int[pkts.length];
-        for (int i=0;i<bufs.length;i++) {
+
+        for (int i = 0; i < bufs.length; i++) {
             bufs[i] = pkts[i].b;
             offs[i] = pkts[i].off;
         }
-        decode(bufs,offs,index,pkts[0].len,true);
+
+        decode(bufs, offs, index, pkts[0].len, true);
     }
 
     /**
@@ -210,21 +214,24 @@ public abstract class FECCode {
      * copies the data using System.arraycopy rather than modifying the
      * Buffer[].
      */
-    protected static final void copyShuffle(Buffer[] pkts, int index[], int k){
+    protected static final void copyShuffle(Buffer[] pkts, int index[], int k) {
         byte[] b = null;
-        for (int i = 0;i < k ;) {
-            if (index[i] >= k || index[i] == i) {
+
+        for (int i = 0; i < k; ) {
+            if ((index[i] >= k) || (index[i] == i)) {
                 i++;
             } else {
+
                 // put pkts in the right position (first check for conflicts).
                 int c = index[i];
-                
+
                 if (index[c] == c) {
-                    throw new IllegalArgumentException
-                        ("Shuffle Error: Duplicate indexes at "+i);
+                    throw new IllegalArgumentException("Shuffle Error: Duplicate indexes at " + i);
                 }
+
                 // swap(index[c],index[i])
                 int tmp = index[i];
+
                 index[i] = index[c];
                 index[c] = tmp;
 
@@ -232,10 +239,10 @@ public abstract class FECCode {
                 if (b == null) {
                     b = new byte[pkts[0].len];
                 }
-                System.arraycopy(pkts[i].b,pkts[i].off,b,0,b.length);
-                System.arraycopy(pkts[c].b,pkts[c].off,pkts[i].b,pkts[i].off,
-                                 b.length);
-                System.arraycopy(b,0,pkts[c].b,pkts[c].off,b.length);
+
+                System.arraycopy(pkts[i].b, pkts[i].off, b, 0, b.length);
+                System.arraycopy(pkts[c].b, pkts[c].off, pkts[i].b, pkts[i].off, b.length);
+                System.arraycopy(b, 0, pkts[c].b, pkts[c].off, b.length);
             }
         }
     }
@@ -243,25 +250,28 @@ public abstract class FECCode {
     /**
      * shuffle move src packets in their position
      */
-    protected static final void shuffle(byte[][] pkts, int[] pktsOff, 
-                                        int[] index, int k) {
-        for (int i=0; i<k;) {
-            if (index[i] >= k || index[i] == i) {
+    protected static final void shuffle(byte[][] pkts, int[] pktsOff, int[] index, int k) {
+        for (int i = 0; i < k; ) {
+            if ((index[i] >= k) || (index[i] == i)) {
                 i++;
             } else {
+
                 // put pkts in the right position (first check for conflicts).
-                int c = index[i] ;
-                
+                int c = index[i];
+
                 if (index[c] == c) {
-                    throw new IllegalArgumentException("Shuffle error at "+i);
+                    throw new IllegalArgumentException("Shuffle error at " + i);
                 }
+
                 // swap(pkts[c],pkts[i])
                 byte[] tmp = pkts[i];
+
                 pkts[i] = pkts[c];
                 pkts[c] = tmp;
 
                 // swap(pktsOff[c],pktsOff[i])
                 int tmp2 = pktsOff[i];
+
                 pktsOff[i] = pktsOff[c];
                 pktsOff[c] = tmp2;
 

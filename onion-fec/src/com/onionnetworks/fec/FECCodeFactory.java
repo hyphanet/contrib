@@ -1,9 +1,9 @@
 package com.onionnetworks.fec;
 
 /**
- * This is the abstract class is subclassed in order to plug in new FEC 
- * implementations.  If you wish to use the default implementation defined by 
- * the property "com.onionnetworks.fec.defaultcodefactoryclass" you should 
+ * This is the abstract class is subclassed in order to plug in new FEC
+ * implementations.  If you wish to use the default implementation defined by
+ * the property "com.onionnetworks.fec.defaultcodefactoryclass" you should
  * simply call:
  *
  * <code>
@@ -16,7 +16,6 @@ package com.onionnetworks.fec;
  * @author Justin F. Chapweske (justin@chapweske.com)
  */
 public abstract class FECCodeFactory {
-
     protected static FECCodeFactory def;
 
     protected FECCodeFactory() {}
@@ -35,17 +34,18 @@ public abstract class FECCodeFactory {
     public synchronized static FECCodeFactory getDefault() {
         if (def == null) {
             try {
-                Class clazz = Class.forName
-                    (System.getProperty
-                     ("com.onionnetworks.fec.defaultcodefactoryclass",
-                      "com.onionnetworks.fec.DefaultFECCodeFactory"));
+                Class clazz = Class.forName(System.getProperty("com.onionnetworks.fec.defaultcodefactoryclass",
+                                  "com.onionnetworks.fec.DefaultFECCodeFactory"));
+
                 def = (FECCodeFactory) clazz.newInstance();
             } catch (Exception e) {
-                // krunky structure, but the easiest way to deal with the 
+
+                // krunky structure, but the easiest way to deal with the
                 // exception.
                 def = new DefaultFECCodeFactory();
             }
         }
+
         return def;
     }
 }
