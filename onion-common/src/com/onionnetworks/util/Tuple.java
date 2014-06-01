@@ -5,7 +5,6 @@ package com.onionnetworks.util;
  * @author Justin F. Chapweske
  */
 public class Tuple {
-
     protected Object left;
     protected Object right;
 
@@ -38,10 +37,13 @@ public class Tuple {
         if (!(obj instanceof Tuple)) {
             return false;
         }
+
         Tuple t = (Tuple) obj;
+
         if (left.equals(t.getLeft()) && right.equals(t.getRight())) {
             return true;
         }
+
         return false;
     }
 }
