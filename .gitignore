@@ -24,7 +24,7 @@
 /mantissa/
 /bitcollider-core/
 
-# db4o is "special". not in a good way.
+## db4o is "special". not in a good way.
 /db4o.orig/
 /db4o/build/
 /db4o/build-db4oj/
@@ -32,3 +32,7 @@
 /db4o/build-db4ojdk5/
 /db4o/src/
 /db4o/db4o.jar
+
+## IntelliJ IDEA Configs
+.idea/
+contrib.iml

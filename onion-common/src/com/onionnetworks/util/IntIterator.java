@@ -5,6 +5,8 @@ package com.onionnetworks.util;
  */
 public interface IntIterator {
     public boolean hasNextInt();
+
     public int nextInt();
+
     public void removeInt();
 }

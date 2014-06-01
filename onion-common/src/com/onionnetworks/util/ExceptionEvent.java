@@ -1,5 +1,7 @@
 package com.onionnetworks.util;
 
+//~--- JDK imports ------------------------------------------------------------
+
 import java.util.EventObject;
 
 /**
@@ -9,7 +11,6 @@ import java.util.EventObject;
  * @author Justin Chapweske
  */
 public class ExceptionEvent extends EventObject {
-
     Throwable t;
 
     /**
@@ -18,14 +19,14 @@ public class ExceptionEvent extends EventObject {
      * @param t The Throwable that is being fired.
      */
     public ExceptionEvent(Object source, Throwable t) {
-	super(source);
-	this.t = t;
+        super(source);
+        this.t = t;
     }
 
     /**
      * @return The Throwable being dispatched.
      */
     public Throwable getException() {
-	return t;
+        return t;
     }
 }

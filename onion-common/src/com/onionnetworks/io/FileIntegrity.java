@@ -1,9 +1,11 @@
 package com.onionnetworks.io;
 
+//~--- non-JDK imports --------------------------------------------------------
+
 import com.onionnetworks.util.Buffer;
 
 /**
- * This interface provides access to a number of block hashes for a file.  
+ * This interface provides access to a number of block hashes for a file.
  * These hashes can be used to check the integrity of a single block and the
  * overall file.
  */
@@ -45,5 +47,4 @@ public interface FileIntegrity {
      * @return the hash of the entire file.
      */
     public Buffer getFileHash();
-
 }
