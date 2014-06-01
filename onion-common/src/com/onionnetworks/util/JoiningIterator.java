@@ -1,5 +1,7 @@
 package com.onionnetworks.util;
 
+//~--- JDK imports ------------------------------------------------------------
+
 import java.util.Iterator;
 
 /**
@@ -7,8 +9,10 @@ import java.util.Iterator;
  */
 public class JoiningIterator implements Iterator {
     private Iterator first, second;
+
     public JoiningIterator(Iterator f, Iterator s) {
-        first = f; second = s;
+        first = f;
+        second = s;
     }
 
     public boolean hasNext() {
@@ -16,7 +20,7 @@ public class JoiningIterator implements Iterator {
     }
 
     public Object next() {
-        return (first.hasNext())?first.next():second.next(); // throws NSEEx
+        return (first.hasNext()) ? first.next() : second.next();    // throws NSEEx
     }
 
     public void remove() {

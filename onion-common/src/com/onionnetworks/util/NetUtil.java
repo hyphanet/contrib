@@ -1,11 +1,13 @@
-// (c) Copyright 2000 Justin F. Chapweske
-// (c) Copyright 2000 Ry4an C. Brase
-
+//(c) Copyright 2000 Justin F. Chapweske
+//(c) Copyright 2000 Ry4an C. Brase
 package com.onionnetworks.util;
 
-import java.net.URL;
-import java.net.InetAddress;
+//~--- JDK imports ------------------------------------------------------------
+
 import java.io.IOException;
+
+import java.net.InetAddress;
+import java.net.URL;
 
 public class NetUtil {
 
@@ -20,9 +22,9 @@ public class NetUtil {
      */
     public static final URL[] getIpUrlsByName(URL url) throws IOException {
 
-        //String query = url.getQuery();   // These three are redundant
-        //String path = url.getPath();
-        //String authority = url.getAuthority();
+        // String query = url.getQuery();   // These three are redundant
+        // String path = url.getPath();
+        // String authority = url.getAuthority();
         String userInfo = url.getUserInfo();
         String protocol = url.getProtocol();
         String host = url.getHost();
@@ -30,40 +32,33 @@ public class NetUtil {
         String ref = url.getRef();
         int port = url.getPort();
 
-        //System.out.println("Query = '" + query + "'");
-        //System.out.println("Path = '" + path + "'");
-        //System.out.println("Authority = '" + authority + "'");
-        //System.out.println("UserInfo = '" + userInfo + "'");
-        //System.out.println("Protocol = '" + protocol + "'");
-        //System.out.println("Host = '" + host + "'");
-        //System.out.println("File = '" + file + "'");
-        //System.out.println("Ref = '" + ref + "'");
-        //System.out.println("Port = " + port);
-
-        if (host == null || "".equals(host)) { // avoids UnknownHostException
+        // System.out.println("Query = '" + query + "'");
+        // System.out.println("Path = '" + path + "'");
+        // System.out.println("Authority = '" + authority + "'");
+        // System.out.println("UserInfo = '" + userInfo + "'");
+        // System.out.println("Protocol = '" + protocol + "'");
+        // System.out.println("Host = '" + host + "'");
+        // System.out.println("File = '" + file + "'");
+        // System.out.println("Ref = '" + ref + "'");
+        // System.out.println("Port = " + port);
+        if ((host == null) || "".equals(host)) {    // avoids UnknownHostException
             return new URL[] { url };
         }
 
         InetAddress[] addrs = InetAddress.getAllByName(host);
         URL[] retval = new URL[addrs.length];
-        for (int i=0; i < addrs.length; i++) {
-            retval[i] = new URL(
-                protocol,
-                ((userInfo == null)
-                    ? addrs[i].getHostAddress()
-                    : (userInfo + "@" + addrs[i].getHostAddress())),
-                port, // -1 is okay
-                ((ref == null)
-                    ? file
-                    : (file + "#" + ref)));
+
+        for (int i = 0; i < addrs.length; i++) {
+            retval[i] = new URL(protocol,
+                                ((userInfo == null)
+                                 ? addrs[i].getHostAddress() : (userInfo + "@" + addrs[i].getHostAddress())), port,    // -1 is okay
+                                ((ref == null) ? file : (file + "#" + ref)));
         }
 
         return retval;
-
     }
 
     public static void main(String[] args) throws Exception {
-
         if (args.length == 0) {
             args = new String[] {
 
@@ -89,12 +84,13 @@ public class NetUtil {
                 "http://64.236.24.4:14234/dir/foobar",
             };
         }
-        
+
         for (int j = 0; j < args.length; j++) {
             System.out.println("----------[ Matches for: " + args[j]);
+
             URL[] urls = getIpUrlsByName(new URL(args[j]));
 
-            for (int i=0; i < urls.length; i++) {
+            for (int i = 0; i < urls.length; i++) {
                 System.out.println(urls[i].toExternalForm());
             }
         }
