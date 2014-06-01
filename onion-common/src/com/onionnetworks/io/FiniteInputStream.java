@@ -1,6 +1,9 @@
 package com.onionnetworks.io;
 
+//~--- JDK imports ------------------------------------------------------------
+
 import java.io.*;
+
 import java.net.*;
 
 /**
@@ -13,13 +16,12 @@ import java.net.*;
  * Once the specified number of bytes have been read, a -1 will be returned.
  * If the underlying inputstream returns a -1 before the specified number
  * of bytes have been read, an EOFException will be thrown.  If one does
- * NOT close() the FiniteInputStream, the parent InputStream can still be 
+ * NOT close() the FiniteInputStream, the parent InputStream can still be
  * used to read additional data.  Calling close() on the FiniteInputStream
- * will close the parent InputStream. 
+ * will close the parent InputStream.
  *
  */
 public class FiniteInputStream extends FilterInputStream {
-
     protected long left;
 
     /**
@@ -27,15 +29,18 @@ public class FiniteInputStream extends FilterInputStream {
      * @param count the total number of bytes to allow to be read from
      * the parent.
      */
-    public FiniteInputStream(InputStream is, long count) { 
+    public FiniteInputStream(InputStream is, long count) {
         super(is);
-	if (is == null) {
-	    throw new NullPointerException();
-	}
-	if (count < 0) {
-	    throw new IllegalArgumentException("count must be > 0");
-	}
-	left = count;
+
+        if (is == null) {
+            throw new NullPointerException();
+        }
+
+        if (count < 0) {
+            throw new IllegalArgumentException("count must be > 0");
+        }
+
+        left = count;
     }
 
     /**
@@ -43,9 +48,11 @@ public class FiniteInputStream extends FilterInputStream {
      */
     public int read() throws IOException {
         byte[] b = new byte[1];
-        if (read(b,0,1) == -1) {
+
+        if (read(b, 0, 1) == -1) {
             return -1;
         }
+
         return b[0] & 0xFF;
     }
 
@@ -59,34 +66,39 @@ public class FiniteInputStream extends FilterInputStream {
      * <code>count</code> bytes have been read.
      */
     public int read(byte[] b, int off, int len) throws IOException {
-	// check the len so that a 0 len returns a 0 result
-	if (left == 0 && len > 0) {
-	    return -1;
-	}
+
+        // check the len so that a 0 len returns a 0 result
+        if ((left == 0) && (len > 0)) {
+            return -1;
+        }
 
         // trunc the read if they want more than is left.
-	//FIX unit test the LONG
-	// The (int) cast is safe because len is an int and thus left will not
-	// return if it would overflow an int.
-        int c = in.read(b,off,(int) Math.min(len,left));
-	if (c < 0) {
-	    throw new EOFException();
+        // FIX unit test the LONG
+        // The (int) cast is safe because len is an int and thus left will not
+        // return if it would overflow an int.
+        int c = in.read(b, off, (int) Math.min(len, left));
+
+        if (c < 0) {
+            throw new EOFException();
         }
-	left -= c;
+
+        left -= c;
+
         return c;
     }
 
     public long skip(long n) throws IOException {
-	long result = in.skip(Math.min(n,left));
-	left -= result;
-	return result;
+        long result = in.skip(Math.min(n, left));
+
+        left -= result;
+
+        return result;
     }
 
     public int available() throws IOException {
-	// (int) cast is safe because in.available must be an int and thus
-	// smaller than overflow.
-	return (int) Math.min(in.available(),left);
-    } 
+
+        // (int) cast is safe because in.available must be an int and thus
+        // smaller than overflow.
+        return (int) Math.min(in.available(), left);
+    }
 }
-
-
