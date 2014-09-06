@@ -7,3 +7,6 @@ HOW TO COMPILE WIN32 BINARY
      make CC=i586-mingw32msvc-gcc libfec8.so libfec16.so
 	 mv libfec8.so  fec8.dll
 	 mv libfec16.so fec16.dll
+
+HOW TO COMPILE FreeBSD BINARY
+	JAVA_HOME="/usr/local/openjdk7" gmake
