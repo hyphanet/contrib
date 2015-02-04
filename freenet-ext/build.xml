@@ -256,8 +256,10 @@
 
 	<macrodef name="lib-report">
 		<attribute name="lib" />
+		<element name="optional" implicit="true" optional="true" />
 		<sequential if:true="${extlib.@{lib}.suppress}">
 			<echo message="suppress @{lib} is ON"/>
+			<optional/>
 		</sequential>
 	</macrodef>
 
