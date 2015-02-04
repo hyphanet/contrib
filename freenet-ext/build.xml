@@ -314,7 +314,7 @@
 					<move file="${tmp}/${extlib.@{lib}.top-dir}" tofile="${pkg.base}/@{dest}"/>
 					<delete dir="${tmp}"/>
 					</else>
-				<sequential>
+				</sequential>
 			</lib-sequential>
 		</sequential>
 	</macrodef>
