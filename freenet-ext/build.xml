@@ -313,7 +313,6 @@
 					</unzip>
 					<move file="${tmp}/${extlib.@{lib}.top-dir}" tofile="${pkg.base}/@{dest}"/>
 					<delete dir="${tmp}"/>
-					</else>
 				</sequential>
 			</lib-sequential>
 		</sequential>
@@ -374,13 +373,13 @@
 						  property="${extlib.@{lib}.sum-sha256}"/>
 					</and>
 				</condition>
-				<if>
-					<istrue value="${extlib.@{lib}.available.@{mirror}}"/>
-					<then><move file="${tmp}/${extlib.@{lib}.filename}" todir="${lib}"/></then>
-					<else><echo message="failed checksum: @{location}"/></else>
-				</if>
+				<sequential if:true="${extlib.@{lib}.available.@{mirror}}">
+					<move file="${tmp}/${extlib.@{lib}.filename}" todir="${lib}"/>
+				</sequential>
+				<sequential unless:true="${extlib.@{lib}.available.@{mirror}}">
+					<echo message="failed checksum: @{location}"/>
+				</sequential>
 				<delete dir="${tmp}"/>
-			</else>
 			</sequential>
 		</sequential>
 	</macrodef>
