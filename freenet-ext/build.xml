@@ -261,6 +261,10 @@
 			<echo message="suppress @{lib} is ON"/>
 			<optional/>
 		</sequential>
+		<sequential unless:true="${extlib.@{lib}.suppress}">
+			<echo message="suppress @{lib} is NOT ON"/>
+			<optional/>
+		</sequential>
 	</macrodef>
 
 	<macrodef name="lib-sequential">
@@ -268,6 +272,10 @@
 		<element name="tasks" implicit="true" optional="true" />
 		<sequential unless:true="${extlib.@{lib}.suppress}">
 			<tasks/>
+		</sequential>
+		<sequential if:true="${extlib.@{lib}.suppress}">
+			<echo message="Not executing tasks because suppress @{lib} is ON"/>
+			<echo message="See build.properties for extlib.@{lib}.suppress values."/>
 		</sequential>
 	</macrodef>
 
