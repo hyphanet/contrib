@@ -256,14 +256,13 @@
 
 	<macrodef name="lib-report">
 		<attribute name="lib" />
-		<element name="optional" implicit="true" optional="true" />
 		<sequential if:true="${extlib.@{lib}.suppress}">
 			<echo message="suppress @{lib} is ON"/>
-			<optional/>
 		</sequential>
 		<sequential unless:true="${extlib.@{lib}.suppress}">
+			<!-- To preserve the old behaviour of this macro, I've commented this out.
 			<echo message="suppress @{lib} is NOT ON"/>
-			<optional/>
+			-->
 		</sequential>
 	</macrodef>
 
@@ -274,8 +273,10 @@
 			<tasks/>
 		</sequential>
 		<sequential if:true="${extlib.@{lib}.suppress}">
+			<!-- To preserve the old behaviour of this macro, I've commented this out, though it provides useful debug information. 
 			<echo message="Not executing tasks because suppress @{lib} is ON"/>
 			<echo message="See build.properties for extlib.@{lib}.suppress values."/>
+			-->
 		</sequential>
 	</macrodef>
 
