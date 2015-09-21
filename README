@@ -33,10 +33,14 @@ Locally maintained
 
 ## Build
 
-You need to install ant, ant-contrib and maven, then call ant from the freenet-ext
-subdirectory. TODO detect this.
+For Debian Jessie:
 
-contrib/freenet-ext$ ant
+    # apt-get install ant ant-contrib maven2
+    $ cd freenet-ext
+    $ ant
+
+(TODO: detect dependencies; db4o requires maven 2 and commons compress 1.10
+requires maven 3)
 
 The build script compiles all the locally-maintained packages, and collects
 them into freenet-ext.jar. It then retrieves all the remote source packages,
