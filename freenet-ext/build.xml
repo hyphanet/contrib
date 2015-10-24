@@ -47,7 +47,7 @@
 
 	<target name="all" depends="package" description="build everything, incl. docs"/>
 
-	<target name="clean-all" depends="clean, clean-local, clean-libsrc" description="clean all build products and remote source code"/>
+	<target name="clean-all" depends="clean, clean-local, clean-lib, clean-libsrc" description="clean all build products and remote source code"/>
 
 	<target name="debug">
 		<echoproperties/>
@@ -160,8 +160,8 @@
 		</lib-sequential>
 	</target>
 
-	<target name="clean-lib" depends="prepare-libsrc" description="clean build products of external packages">
-		<lib-sequential lib="wrapper">
+	<target name="clean-lib" description="clean build products of external packages">
+		<lib-maybe lib="wrapper">
 			<!--WORKAROUND bug in wrapper's build.xml-->
 			<mkdir dir="${pkg.base}/wrapper/bin"/>
 			<mkdir dir="${pkg.base}/wrapper/lib"/>
@@ -171,26 +171,26 @@
 				<target name="clean"/>
 				<target name="total-clean"/>
 			</ant>
-		</lib-sequential>
-		<lib-sequential lib="db4o">
+		</lib-maybe>
+		<lib-maybe lib="db4o">
 			<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="clean"/>
-		</lib-sequential>
-		<lib-sequential lib="commons-compress">
+		</lib-maybe>
+		<lib-maybe lib="commons-compress">
 			<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
-		</lib-sequential>
-		<lib-sequential lib="lzmajio">
+		</lib-maybe>
+		<lib-maybe lib="lzmajio">
 			<!-- TODO lzmajio doesn't have a "clean" target :/ -->
 			<!--<ant inheritAll="false" antfile="${pkg.base}/lzmajio/build.xml" target="clean"/>-->
-		</lib-sequential>
-		<lib-sequential lib="mantissa">
+		</lib-maybe>
+		<lib-maybe lib="mantissa">
 			<ant inheritAll="false" antfile="${pkg.base}/mantissa/build.xml" target="clean"/>
-		</lib-sequential>
-		<lib-sequential lib="bitcollider-core">
+		</lib-maybe>
+		<lib-maybe lib="bitcollider-core">
 			<ant inheritAll="false" antfile="${pkg.base}/${pkg.contrib}/generic-build.xml"
 			  dir="${pkg.base}/bitcollider-core" target="clean">
 				<property name="jar" value="bitcollider-core.jar"/>
 			</ant>
-		</lib-sequential>
+		</lib-maybe>
 	</target>
 
 	<!-- =================================================================== -->
@@ -285,6 +285,22 @@
 		<sequential>
 			<lib-sequential lib="@{lib}">
 				<copy tofile="${main.dst}/@{lib}.jar" file="${pkg.base}/@{lib}/${extlib.@{lib}.jar-dst}"/>
+			</lib-sequential>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="lib-maybe">
+		<attribute name="lib" />
+		<element name="tasks" implicit="true" optional="true" />
+		<sequential>
+			<lib-sequential lib="@{lib}">
+				<if>
+					<and>
+						<available file="${pkg.base}/@{lib}" type="dir"/>
+						<available file="${pkg.base}/@{lib}/${extlib.@{lib}.buildfile}"/>
+					</and>
+					<then><tasks/></then>
+				</if>
 			</lib-sequential>
 		</sequential>
 	</macrodef>
