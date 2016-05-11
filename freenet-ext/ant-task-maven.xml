@@ -3,7 +3,7 @@
 	<description>Defines a macro to run Maven tasks from ANT, without needing additional libraries.
 Lifted from http://maven.apache.org/ant-tasks/examples/mvn.html</description>
 
-	<property name="maven.home" value="/usr/share/maven2"/>
+	<property name="maven.home" value="/usr/share/maven"/>
 
 	<macrodef name="maven">
 		<attribute name="options" default="" />
