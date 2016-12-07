@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="Freenet dependencies" default="all" basedir=".">
+<project name="Freenet dependencies"
+ xmlns:if="ant:if"
+ xmlns:unless="ant:unless"
+ default="all"
+ basedir="."
+>
 
 	<!-- =================================================================== -->
 	<!-- Global properties                                                   -->
@@ -251,22 +256,27 @@
 
 	<macrodef name="lib-report">
 		<attribute name="lib" />
-		<sequential>
-			<if>
-				<istrue value="${extlib.@{lib}.suppress}"/>
-				<then><echo message="suppress @{lib} is ON"/></then>
-			</if>
+		<sequential if:true="${extlib.@{lib}.suppress}">
+			<echo message="suppress @{lib} is ON"/>
+		</sequential>
+		<sequential unless:true="${extlib.@{lib}.suppress}">
+			<!-- To preserve the old behaviour of this macro, I've commented this out.
+			<echo message="suppress @{lib} is NOT ON"/>
+			-->
 		</sequential>
 	</macrodef>
 
 	<macrodef name="lib-sequential">
 		<attribute name="lib" />
 		<element name="tasks" implicit="true" optional="true" />
-		<sequential>
-			<if>
-				<istrue value="${extlib.@{lib}.suppress}"/>
-				<else><tasks/></else>
-			</if>
+		<sequential unless:true="${extlib.@{lib}.suppress}">
+			<tasks/>
+		</sequential>
+		<sequential if:true="${extlib.@{lib}.suppress}">
+			<!-- To preserve the old behaviour of this macro, I've commented this out, though it provides useful debug information. 
+			<echo message="Not executing tasks because suppress @{lib} is ON"/>
+			<echo message="See build.properties for extlib.@{lib}.suppress values."/>
+			-->
 		</sequential>
 	</macrodef>
 
@@ -312,27 +322,25 @@
 			<lib-report lib="@{lib}"/>
 			<lib-sequential lib="@{lib}">
 				<basename property="extlib.@{lib}.filename" file="${extlib.@{lib}.location}"/>
-				<if>
-					<available file="${pkg.base}/@{dest}" type="dir"/>
-					<else>
-						<delete dir="${tmp}"/>
-						<mkdir dir="${tmp}"/>
-						<untar dest="${tmp}" compression="gzip">
-							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar.gz"/></fileset>
-						</untar>
-						<untar dest="${tmp}" compression="bzip2">
-							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar.bz2"/></fileset>
-						</untar>
-						<untar dest="${tmp}">
-							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar"/></fileset>
-						</untar>
-						<unzip dest="${tmp}">
-							<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.zip"/></fileset>
-						</unzip>
-						<move file="${tmp}/${extlib.@{lib}.top-dir}" tofile="${pkg.base}/@{dest}"/>
-						<delete dir="${tmp}"/>
-					</else>
-				</if>
+				<available file="${pkg.base}/@{dest}" type="dir" property="${pkg.base}/@{dest}-available"/>
+				<sequential unless:true="${pkg.base}/@{dest}-available">
+					<delete dir="${tmp}"/>
+					<mkdir dir="${tmp}"/>
+					<untar dest="${tmp}" compression="gzip">
+						<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar.gz"/></fileset>
+					</untar>
+					<untar dest="${tmp}" compression="bzip2">
+						<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar.bz2"/></fileset>
+					</untar>
+					<untar dest="${tmp}">
+						<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.tar"/></fileset>
+					</untar>
+					<unzip dest="${tmp}">
+						<fileset dir="${lib}" includes="${extlib.@{lib}.filename}"><filename name="*.zip"/></fileset>
+					</unzip>
+					<move file="${tmp}/${extlib.@{lib}.top-dir}" tofile="${pkg.base}/@{dest}"/>
+					<delete dir="${tmp}"/>
+				</sequential>
 			</lib-sequential>
 		</sequential>
 	</macrodef>
@@ -380,28 +388,26 @@
 		<attribute name="location" default="${extlib.mirror.@{mirror}}/${extlib.@{lib}.filename}" />
 		<sequential>
 			<nested-lib-checksrc lib="@{lib}"/>
-			<if>
-				<istrue value="${extlib.@{lib}.available}"/>
-				<else>
-					<delete dir="${tmp}"/>
-					<mkdir dir="${tmp}"/>
-					<get src="@{location}" dest="${tmp}/${extlib.@{lib}.filename}"
-					  verbose="true" usetimestamp="true" ignoreerrors="true"/>
-					<condition property="extlib.@{lib}.available.@{mirror}">
-						<and>
-							<available file="${tmp}/${extlib.@{lib}.filename}"/>
-							<checksum file="${tmp}/${extlib.@{lib}.filename}" algorithm="SHA-256"
-							  property="${extlib.@{lib}.sum-sha256}"/>
-						</and>
-					</condition>
-					<if>
-						<istrue value="${extlib.@{lib}.available.@{mirror}}"/>
-						<then><move file="${tmp}/${extlib.@{lib}.filename}" todir="${lib}"/></then>
-						<else><echo message="failed checksum: @{location}"/></else>
-					</if>
-					<delete dir="${tmp}"/>
-				</else>
-			</if>
+			<sequential unless:true="${extlib.@{lib}.available}">
+				<delete dir="${tmp}"/>
+				<mkdir dir="${tmp}"/>
+				<get src="@{location}" dest="${tmp}/${extlib.@{lib}.filename}"
+				  verbose="true" usetimestamp="true" ignoreerrors="true"/>
+				<condition property="extlib.@{lib}.available.@{mirror}">
+					<and>
+						<available file="${tmp}/${extlib.@{lib}.filename}"/>
+						<checksum file="${tmp}/${extlib.@{lib}.filename}" algorithm="SHA-256"
+						  property="${extlib.@{lib}.sum-sha256}"/>
+					</and>
+				</condition>
+				<sequential if:true="${extlib.@{lib}.available.@{mirror}}">
+					<move file="${tmp}/${extlib.@{lib}.filename}" todir="${lib}"/>
+				</sequential>
+				<sequential unless:true="${extlib.@{lib}.available.@{mirror}}">
+					<echo message="failed checksum: @{location}"/>
+				</sequential>
+				<delete dir="${tmp}"/>
+			</sequential>
 		</sequential>
 	</macrodef>
 
