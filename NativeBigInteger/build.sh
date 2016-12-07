@@ -65,15 +65,16 @@ if test ! `uname` = "Darwin"
 then
 
 # Build a library version for each of the enumerated (x86) CPU types
+# and generic ARM
 #
-# "none" = a generic build with no specific CPU type indicated to the 
+# "none" = a generic build with no specific CPU type indicated to the
 # compiler
 
 if [ -n "$1" ]
 then
 	TARGT="$1"
 else
-	TARGT="none pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon x86_64"
+	TARGT="none arm pentium pentiummmx pentium2 pentium3 pentium4 k6 k62 k63 athlon x86_64"
 fi
 
 for CPU in $TARGT
@@ -96,7 +97,7 @@ do
 	sh ../../build_jbigi.sh static
 
 	# Copy library to its final location with CPU-specific name
-	
+
 	case ${OS} in
 	MINGW*)
 		cp jbigi.dll ../../lib/net/i2p/util/jbigi-windows-${CPU}.dll
@@ -110,7 +111,7 @@ do
 	esac
 
 	echo "Done!"
-	
+
 	# return to original directory for next build
 	# (or return user to original directory upon exit)
 	cd ../..
