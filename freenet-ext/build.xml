@@ -74,7 +74,7 @@
 		</replace>
 		<echo message="Updated build version to ${git.revision} in ${main.make}/${version.src}"/>
 
-		<javac srcdir="${main.make}" destdir="${main.make}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="${main.make}" destdir="${main.make}" debug="on" optimize="on" source="1.5" target="1.7">
 			<compilerarg line="${javac.args}"/>
 			<include name="${version.src}"/>
 		</javac>
