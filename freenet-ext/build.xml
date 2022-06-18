@@ -85,7 +85,6 @@
 			<exclude name="${version.src}"/>
 		</jar>
 		<lib-copy lib="wrapper"/>
-		<lib-copy lib="db4o"/>
 		<lib-copy lib="commons-compress"/>
 		<lib-copy lib="lzmajio"/>
 		<lib-copy lib="mantissa"/>
@@ -133,11 +132,6 @@
 				<property name="javac.target.version" value="${javac.target.version}"/>
 			</ant>
 		</lib-sequential>
-		<lib-sequential lib="db4o">
-			<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="jar">
-				<property name="javac.target.version" value="${javac.target.version}"/>
-			</ant>
-		</lib-sequential>
 		<lib-sequential lib="commons-compress">
 			<maven basedir="${pkg.base}/commons-compress" goal="package"/>
 		</lib-sequential>
@@ -172,9 +166,6 @@
 				<target name="total-clean"/>
 			</ant>
 		</lib-maybe>
-		<lib-maybe lib="db4o">
-			<ant inheritAll="false" antfile="${pkg.base}/db4o/build.xml" target="clean"/>
-		</lib-maybe>
 		<lib-maybe lib="commons-compress">
 			<maven basedir="${pkg.base}/commons-compress" goal="clean"/>
 		</lib-maybe>
@@ -199,7 +190,6 @@
 
 	<target name="get-libsrc">
 		<lib-getsrc lib="wrapper"/>
-		<lib-getsrc lib="db4o"/>
 		<lib-getsrc lib="commons-compress"/>
 		<lib-getsrc lib="lzma"/>
 		<lib-getsrc lib="lzmajio"/>
@@ -209,32 +199,20 @@
 
 	<target name="prepare-libsrc" depends="get-libsrc" description="ensure that all remote source code is available">
 		<lib-unpacksrc lib="wrapper"/>
-		<lib-unpacksrc lib="db4o" dest="db4o.orig"/>
 		<lib-unpacksrc lib="commons-compress"/>
 		<lib-unpacksrc lib="lzma"/>
 		<lib-unpacksrc lib="lzmajio"/>
 		<lib-unpacksrc lib="mantissa"/>
 		<lib-unpacksrc lib="bitcollider-core"/>
-
-		<!-- extra massaging -->
-		<lib-sequential lib="db4o">
-			<copy todir="${pkg.base}/db4o">
-				<fileset dir="${pkg.base}/db4o.orig"><include name="src/db4oj*/**"/></fileset>
-			</copy>
-		</lib-sequential>
 	</target>
 
 	<target name="clean-libsrc" description="remove all remote source code">
 		<lib-delsrc lib="wrapper"/>
-		<lib-delsrc lib="db4o" dest="db4o.orig"/>
 		<lib-delsrc lib="commons-compress"/>
 		<lib-delsrc lib="lzma"/>
 		<lib-delsrc lib="lzmajio"/>
 		<lib-delsrc lib="mantissa"/>
 		<lib-delsrc lib="bitcollider-core"/>
-
-		<!-- undo massaging -->
-		<lib-delsrc lib="db4o" dest="db4o/src"/>
 	</target>
 
 	<!-- =================================================================== -->

@@ -8,7 +8,6 @@ Upstream source
 
 	- wrapper
 	- bdb-je
-	- db4o
 	- commons-compress
 
 Mirrored source
@@ -39,8 +38,7 @@ For Debian Jessie:
     $ cd freenet-ext
     $ ant
 
-(TODO: detect dependencies; db4o requires maven 2 and commons compress 1.10
-requires maven 3)
+(TODO: detect dependencies; commons compress 1.10 requires maven 3)
 
 The build script compiles all the locally-maintained packages, and collects
 them into freenet-ext.jar. It then retrieves all the remote source packages,
