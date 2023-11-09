@@ -3,7 +3,7 @@
 	<description>Defines a macro to run Maven tasks from ANT, without needing additional libraries.
 Lifted from http://maven.apache.org/ant-tasks/examples/mvn.html</description>
 
-	<property name="maven.home" value="/usr/share/maven2"/>
+	<property name="maven.home" value="/usr/share/maven"/>
 
 	<macrodef name="maven">
 		<attribute name="options" default="" />
@@ -14,7 +14,7 @@ Lifted from http://maven.apache.org/ant-tasks/examples/mvn.html</description>
 		<sequential>
 			<java classname="org.codehaus.classworlds.Launcher" fork="true"
 			  dir="@{basedir}" resultproperty="@{resultproperty}">
-				<!--<jvmarg value="-Xmx512m"/>-->
+				<jvmarg value="-Dmaven.multiModuleProjectDirectory=${maven.home}"/>
 				<classpath>
 					<fileset dir="${maven.home}/boot"><include name="*.jar" /></fileset>
 					<fileset dir="${maven.home}/lib"><include name="*.jar" /></fileset>

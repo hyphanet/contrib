@@ -34,7 +34,7 @@ Locally maintained
 
 For Debian Jessie:
 
-    # apt-get install ant ant-contrib maven2
+    # apt-get install ant ant-contrib maven
     $ cd freenet-ext
     $ ant
 
